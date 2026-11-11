@@ -199,6 +199,8 @@ def BuildFitImage (config_dict):
         if file_path:
             CreateDirectory(new_file_path)
             Copy(file_path, new_file_path)
+        else:
+            Error('Missing FIT input in current build: %s' % file_name)
 
     # copy its file to fit image directory, and change its path to fit image directory
     Copy(its_file, fit_path)
@@ -312,7 +314,13 @@ if __name__ == '__main__':
         Error ('Platform config file %s is empty' % (arguments.config_file, ))
 
     # get build output directory
-    gOutputPath = FindSubDir(gWorkspace, '%s_%s' % (arguments.build_target, arguments.toolchain_type))
+    config = platform_config.get('CONFIG')
+    output = config.get('BUILD_OUTPUT_DIRECTORY')
+    if not output:
+        Error('BUILD_OUTPUT_DIRECTORY must identify the platform build output')
+    gOutputPath = os.path.join(gWorkspace, output, '%s_%s' % (arguments.build_target, arguments.toolchain_type))
+    if not os.path.isdir(gOutputPath):
+        Error('Configured build output does not exist: %s' % gOutputPath)
 
     # update general build config with platform specific config
     config = platform_config.get("CONFIG")
