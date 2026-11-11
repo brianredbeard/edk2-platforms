@@ -1,0 +1,54 @@
+{
+  "vendor_baseline": "0b8b7182d8a20a771b97a487d0e6f4ab89fb3492",
+  "opensbi": "a731c7e36988c3308e1978ecde491f2f6182d490",
+  "sdk": {
+    "kind": "vendor 0.0.9 source archive; not a Git checkout",
+    "source_archive_sha256": "9b14187818a2938578298ca24fd9e0038adbaada839988d1daf2b50f49c1f01a",
+    "warning": "Local SDK configuration includes Fedora GCC warning accommodations; vendor reproducible provisioning still required"
+  },
+  "compiler": "riscv64-linux-gnu-gcc (GCC) 16.2.1 20260819 (Red Hat Cross 16.2.1-1)",
+  "dtc": "1.8.1",
+  "target": "RISCV64 RELEASE GCC5",
+  "hardware_validation": {
+    "replacement_firmware": "not performed",
+    "COM260_IFX": "not performed"
+  },
+  "enabled_artifact_evidence": {
+    "k3-pico-itx": {
+      "size": 46552,
+      "sha256": "46609974206c59b2ebcc37ddfc6740c39f5f65a404c404a86322bc6b564ea55e",
+      "raw_section_matches": true
+    },
+    "k3-com260-ifx": {
+      "size": 44779,
+      "sha256": "f27315d7b159971c0a9e422fe50ee459ab3ae826dd09c5c8a0706ebe13ab4ca6",
+      "raw_section_matches": true
+    },
+    "fit_uefi_matches_fd": true,
+    "MUSE-Pico.itb": {
+      "size": 3248128,
+      "sha256": "49750bdd01c50235d24caa08b804c4631c530a289bd7b6f96ab9e0c4d4ee141a"
+    },
+    "MUSE-PICO.fd": {
+      "size": 3145728,
+      "sha256": "83cdb89ba2090efc1f2976a76d6733912aec7dea017193449a60a33c57e2418a"
+    }
+  },
+  "disabled_artifact_evidence": {
+    "MUSE-Pico.itb": {
+      "size": 3248128,
+      "sha256": "0aab2705b8dca77dd2bfded2c303433043d62b2683966b818e6ff51725dd258f"
+    },
+    "MUSE-PICO.fd": {
+      "size": 3145728,
+      "sha256": "cf993bae8bcb24609fbc67c529945a09e99f44047882b0e68335f09637919206"
+    },
+    "fit_uefi_matches_fd": true
+  },
+  "checks": {
+    "host_tests": 21,
+    "baseline_release": "passed",
+    "enabled_release": "passed",
+    "disabled_release": "passed"
+  }
+}

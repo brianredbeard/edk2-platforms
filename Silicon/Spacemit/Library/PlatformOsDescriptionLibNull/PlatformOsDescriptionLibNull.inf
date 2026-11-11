@@ -10,4 +10,3 @@
 [Packages]
   MdePkg/MdePkg.dec
   Silicon/Spacemit/SpacemitPkg.dec
-
