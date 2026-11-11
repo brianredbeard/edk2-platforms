@@ -23,6 +23,7 @@
 
 [Sources]
   PlatformBootManager.c
+  OsDescriptionGate.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -31,6 +32,7 @@
   Silicon/Spacemit/SpacemitPkg.dec
 
 [LibraryClasses]
+  PlatformOsDescriptionLib
   BaseLib
   PcdLib
   UefiLib

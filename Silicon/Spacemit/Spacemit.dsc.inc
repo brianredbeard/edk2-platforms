@@ -20,6 +20,7 @@
 #
 ################################################################################
 [LibraryClasses.common]
+  PlatformOsDescriptionLib|Silicon/Spacemit/Library/PlatformOsDescriptionLibNull/PlatformOsDescriptionLibNull.inf
 !if $(DEBUG_ON_SERIAL_PORT) == TRUE
   DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
 !else

@@ -189,13 +189,28 @@ READ_STATUS        = TRUE
 READ_LOCK_CAP      = TRUE
 READ_LOCK_STATUS   = TRUE
 
+!if $(K3_OS_DTB_ENABLE) == TRUE
+APRIORI DXE {
+  INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
+  INF Silicon/Spacemit/K3/Drivers/K3OsFdtDxe/K3OsFdtDxe.inf
+}
+INF Silicon/Spacemit/K3/Drivers/K3OsFdtDxe/K3OsFdtDxe.inf
+FILE FREEFORM = 7901d61e-f64d-4989-835f-3ebe50c83c99 {
+  SECTION RAW = $(OUTPUT_DIRECTORY)/$(TARGET)_$(TOOL_CHAIN_TAG)/RISCV64/Platform/Spacemit/K3/DeviceTree/Os/K3OsDeviceTree/OUTPUT/k3-pico-itx.os.dtb
+}
+FILE FREEFORM = 04c61fa0-a7e8-4e92-a832-f13e53c99ab1 {
+  SECTION RAW = $(OUTPUT_DIRECTORY)/$(TARGET)_$(TOOL_CHAIN_TAG)/RISCV64/Platform/Spacemit/K3/DeviceTree/Os/K3OsDeviceTree/OUTPUT/k3-com260-ifx.os.dtb
+}
+!endif
 !include Silicon/Spacemit/SpacemitDxeFv.fdf.inc
 !include Features/Ext4Pkg/Ext4.fdf.inc
 
 # SKU selection
 INF Silicon/Spacemit/K3/Drivers/SkuSelectDxe/SkuSelectDxe.inf
 # DTB compatible fixup (COM260)
+!if $(K3_OS_DTB_ENABLE) == FALSE
 INF Silicon/Spacemit/K3/Drivers/CompatibleFixupDxe/CompatibleFixupDxe.inf
+!endif
 
 #
 # ACPI support
@@ -208,7 +223,7 @@ INF  MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
 INF  MdeModulePkg/Universal/Acpi/AcpiPlatformDxe/AcpiPlatformDxe.inf
 INF  RuleOverride = ACPITABLE Platform/Spacemit/K3/AcpiTables/K3AcpiTables.inf
 
-!else
+!elseif $(K3_OS_DTB_ENABLE) == FALSE
 INF  Silicon/RISC-V/ProcessorPkg/Universal/FdtDxe/FdtDxe.inf
 !endif # ACPI_ENABLE
 

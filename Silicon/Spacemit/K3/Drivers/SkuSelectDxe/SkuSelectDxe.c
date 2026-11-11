@@ -80,31 +80,11 @@ GetFdtBase (
   VOID
   )
 {
-  UINTN   Index;
   VOID    *FdtBase;
   VOID    *Hob;
   UINT64  FdtAddress;
 
-  //
-  // Prefer the configuration table entry installed by FdtDxe.
-  //
-  if ((gST != NULL) && (gST->ConfigurationTable != NULL)) {
-    for (Index = 0; Index < gST->NumberOfTableEntries; Index++) {
-      if (CompareGuid (&gST->ConfigurationTable[Index].VendorGuid, &gFdtTableGuid)) {
-        FdtBase = gST->ConfigurationTable[Index].VendorTable;
-        if ((FdtBase != NULL) && (FdtCheckHeader (FdtBase) == 0)) {
-          return FdtBase;
-        }
-
-        DEBUG ((DEBUG_WARN, "%a: Configuration-table DTB is invalid; trying FDT HOB\n", __func__));
-        break;
-      }
-    }
-  }
-
-  //
-  // Fall back to the HOB left by SEC/PEI.
-  //
+  // Internal topology must never depend on the OS configuration table.
   Hob = GetFirstGuidHob (&gFdtHobGuid);
   if ((Hob == NULL) || (GET_GUID_HOB_DATA_SIZE (Hob) != sizeof (UINT64))) {
     return NULL;

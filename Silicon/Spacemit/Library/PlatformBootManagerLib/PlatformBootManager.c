@@ -7,6 +7,7 @@
 **/
 #include <IndustryStandard/Pci.h>
 #include <Library/BaseLib.h>
+#include <Library/PlatformOsDescriptionLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PrintLib.h>
 #include <Library/UefiLib.h>
@@ -548,6 +549,8 @@ PlatformBootManagerAfterConsole (
   // Signal After Console Event
   //
   EfiEventGroupSignal (&gSpacemitBdsAfterConsoleEventGroupGuid);
+
+  PlatformRequireOsDescription ();
 }
 
 STATIC
@@ -602,4 +605,30 @@ PlatformBootManagerUnableToBoot (
 {
   // TODO
   return;
+}
+
+// Use the embedded shell directly, without Boot#### lookup or startup.nsh.
+VOID
+PlatformOsDescriptionRecovery (VOID)
+{
+  EFI_STATUS Status;
+  EFI_LOADED_IMAGE_PROTOCOL *Loaded;
+  EFI_DEVICE_PATH_PROTOCOL *Path, *Base;
+  MEDIA_FW_VOL_FILEPATH_DEVICE_PATH FileNode;
+  EFI_BOOT_MANAGER_LOAD_OPTION Option;
+  CHAR16 Arguments[] = L"Shell.efi -nostartup";
+  Status = gBS->HandleProtocol (gImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **)&Loaded);
+  if (EFI_ERROR (Status)) { return; }
+  Base = DevicePathFromHandle (Loaded->DeviceHandle);
+  if (Base == NULL) { return; }
+  EfiInitializeFwVolDevicepathNode (&FileNode, &gUefiShellFileGuid);
+  Path = AppendDevicePathNode (Base, (EFI_DEVICE_PATH_PROTOCOL *)&FileNode);
+  if (Path == NULL) { return; }
+  Status = EfiBootManagerInitializeLoadOption (&Option, LoadOptionNumberUnassigned,
+              LoadOptionTypeBoot, LOAD_OPTION_ACTIVE, L"Hardware description recovery",
+              Path, (UINT8 *)Arguments, sizeof Arguments);
+  FreePool (Path);
+  if (EFI_ERROR (Status)) { return; }
+  EfiBootManagerBoot (&Option);
+  EfiBootManagerFreeLoadOption (&Option);
 }
