@@ -27,28 +27,30 @@
     "fit_uefi_matches_fd": true,
     "MUSE-Pico.itb": {
       "size": 3248128,
-      "sha256": "49750bdd01c50235d24caa08b804c4631c530a289bd7b6f96ab9e0c4d4ee141a"
+      "sha256": "6d34b8fcea68c9728f7427d383e9136a9c14f7988b527c6e0f0a68978d71ef81"
     },
     "MUSE-PICO.fd": {
       "size": 3145728,
-      "sha256": "83cdb89ba2090efc1f2976a76d6733912aec7dea017193449a60a33c57e2418a"
+      "sha256": "596d57bfb389f09d533e79d710eb9e691e97d05f7669dea4a03bb2ff1acebe61"
     }
   },
   "disabled_artifact_evidence": {
+    "fit_uefi_matches_fd": true,
     "MUSE-Pico.itb": {
       "size": 3248128,
-      "sha256": "0aab2705b8dca77dd2bfded2c303433043d62b2683966b818e6ff51725dd258f"
+      "sha256": "5c99ba50abb86bf9bf8ff6a7cba3278e466c7af39e43863e82c0740fa355f3a0"
     },
     "MUSE-PICO.fd": {
       "size": 3145728,
-      "sha256": "cf993bae8bcb24609fbc67c529945a09e99f44047882b0e68335f09637919206"
-    },
-    "fit_uefi_matches_fd": true
+      "sha256": "3b2f587e06f945fcd099c6cfc4d5b195475144000a2f43fb47eb7e3302bf20bf"
+    }
   },
   "checks": {
-    "host_tests": 21,
+    "host_tests": 22,
     "baseline_release": "passed",
     "enabled_release": "passed",
-    "disabled_release": "passed"
+    "disabled_release": "passed",
+    "mutually_exclusive_configuration": "rejected at DSC parsing; previously accepted",
+    "review": "two important findings repaired with regressions"
   }
 }

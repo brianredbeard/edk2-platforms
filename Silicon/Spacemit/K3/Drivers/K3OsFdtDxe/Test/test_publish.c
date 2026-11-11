@@ -1,5 +1,7 @@
 /* Test the actual DXE callback with fake UEFI service boundaries and real libfdt. */
 #include <stdio.h>
+#include <stdarg.h>
+#include "../../../../Drivers/FdtFixupDxe/FdtMemoryFixup.h"
 #include <TestUefi.h>
 #include <libfdt.h>
 #include "../K3OsFdtDxe.c"
@@ -9,6 +11,12 @@ EFI_GUID gFdtHobGuid, gFdtTableGuid, gEfiFdtFixupProtocolGuid, gSpacemitPlatform
 static EFI_HOB_GUID_TYPE Hob;
 static char Firmware[4096], Original[4096], Os[4096];
 static int Fail, Allocations, Pools, Closes, Installs, Fixups;
+static TEST_RESOURCE_HOB MemoryHobs[2];
+VOID *GetFirstHob(int Type) { assert(Type==3);return Fail==13 ? NULL : MemoryHobs; }
+VOID *GetNextHob(int Type,VOID *Hob) { assert(Type==3);return Hob; }
+UINTN AsciiSPrint(char *Buffer,UINTN Size,const char *Format,...) {
+ va_list Args;va_start(Args,Format);int N=vsnprintf(Buffer,Size,Format,Args);va_end(Args);return N;
+}
 #define MAP_BASE 0x100000000ULL
 #define MAP_PAGES 16
 static EFI_MEMORY_DESCRIPTOR Map[MAP_PAGES];
@@ -42,7 +50,8 @@ static EFI_STATUS Close(EFI_EVENT Event) { assert(Event==(void *)1); Closes++; r
 static EFI_STATUS Fix(EFI_DT_FIXUP_PROTOCOL *This,VOID *Tree,UINTN *Size,UINT32 Flags) {
  (void)This; (void)Size; assert(Flags==EFI_DT_APPLY_FIXUPS); Fixups++;
  if(Fail==4) return 1;
- return fdt_setprop_u32(Tree,0,"test-fixed",1);
+ assert(fdt_setprop_u32(Tree,0,"test-fixed",1)==0);
+ return FdtUpdateMemoryFromHobs(Tree);
 }
 static EFI_DT_FIXUP_PROTOCOL Protocol={0x10000,Fix};
 static EFI_STATUS Locate(EFI_GUID *Guid,VOID *Reg,VOID **Value) {
@@ -103,6 +112,8 @@ static void Reset(void) {
  memcpy(Os,Firmware,sizeof Os);memcpy(Original,Firmware,sizeof Firmware);
  Hob.Address=(UINTN)Firmware;Published=Firmware;
  Reserved=MapGrowth=0;
+ MemoryHobs[0]=(TEST_RESOURCE_HOB){.PhysicalStart=MAP_BASE,.ResourceLength=0x80000000};
+ MemoryHobs[1]=(TEST_RESOURCE_HOB){.End=1};
  memset(&Gcd,0,sizeof Gcd);GcdStatus=EFI_ACCESS_DENIED;
  for(UINTN I=0;I<MAP_PAGES;I++) {
   Map[I]=(EFI_MEMORY_DESCRIPTOR){.Type=EfiConventionalMemory,.PhysicalStart=MAP_BASE+I*4096,.NumberOfPages=1};
@@ -148,7 +159,7 @@ int main(void) {
  Reset();Reservation(MAP_BASE,4096);
  assert(K3OsFdtEntryPoint(NULL,NULL)==0);assert(Reserved==1);assert(Installs==0);
  assert(Producer->Finalize(Producer)==0);FreePages((UINTN)Published,0);
- for(Phase=9;Phase<=12;Phase++) {
+ for(Phase=9;Phase<=13;Phase++) {
   Reset();Reservation(MAP_BASE,4096);Fail=Phase;Run();
   assert(Installs==0 && Reserved==0 && Allocations==0);
  }

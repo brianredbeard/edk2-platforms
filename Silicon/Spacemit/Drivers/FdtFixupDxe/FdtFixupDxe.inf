@@ -16,6 +16,8 @@
 
 [Sources.common]
   FdtFixupDxe.c
+  FdtMemoryFixup.c
+  FdtMemoryFixup.h
 
 [Packages]
   MdePkg/MdePkg.dec

@@ -10,7 +10,8 @@ experiment; that does not validate the replacement lifecycle.
 
 `tools/test-k3-efi.py` runs packaging, real libfdt preparation, source compilation,
 and actual C lifecycle/reservation/boot-gate tests. EFI service boundaries are
-mocked, not the production algorithms. Cases include unknown/mismatched carrier,
+mocked, not the production algorithms. The suite has 22 tests, including a C
+harness for mandatory RAM synthesis and its failures. Cases include unknown/mismatched carrier,
 bounded identity, boot-hart protocol failure, absent producer/fixup service,
 early reservation, failed publication, repeated finalization, rollback, MMIO
 exclusions, occupied RAM conflicts, map growth and recovery-shell return.
@@ -53,10 +54,23 @@ COM260 IFX has no hardware boot result in this series.
 
 ## Remaining source review
 
-The vendor fixup service's individual optional-property helpers can log errors
-without failing the outer call; its runtime RAM synthesis and per-device data
-need independent qualification. The caller rejects reported fixup errors and
+Mandatory RAM synthesis now rejects missing banks, invalid ranges and FDT
+mutation failures; errors propagate through the fixup protocol and block
+publication. The vendor fixup service's optional serial/MAC/platform-property
+helpers can still log individual errors without failing the outer call; their
+per-device data needs independent qualification. The caller rejects reported fixup errors and
 structural/reservation corruption, but does not claim that every semantically
 incorrect runtime property can be detected. Source provenance does not establish
 upstream binding completeness. Keep this path opt-in until these and hardware
 gates are closed.
+
+## Independent review and configuration regression
+
+The independent whole-series review identified two important issues: mandatory
+RAM-update failures were not propagated, and simultaneous ACPI/OS-DT enablement
+was allowed. Both were repaired in the focused follow-up. RAM tests inject node
+and property failures and invalid/missing HOB memory; the publication harness
+checks rollback when RAM synthesis fails. A real EDK2 module build accepted both
+options before the guard and now rejects them at DSC parsing with the explicit
+mutual-exclusion error. Enabled and disabled RELEASE builds are rechecked after
+that correction. See [review.md](review.md) for scope and remaining gates.

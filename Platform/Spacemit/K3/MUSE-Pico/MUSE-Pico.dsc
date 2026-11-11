@@ -31,6 +31,10 @@
 
   POSTBUILD                      = python3 Platform/Spacemit/PostBuild.py --post Platform/Spacemit/K3/MUSE-Pico/PostBuild.cfg
 
+!if $(K3_OS_DTB_ENABLE) == TRUE AND $(ACPI_ENABLE) == TRUE
+!error K3_OS_DTB_ENABLE and ACPI_ENABLE are mutually exclusive
+!endif
+
 [SkuIds]
   0|DEFAULT
   1|COM260

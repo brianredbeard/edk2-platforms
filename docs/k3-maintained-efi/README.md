@@ -46,7 +46,7 @@ remove or reinterpret a binding used by an OS already supported on that board.
 The enabled path omits the legacy FdtDxe publication and compatibility rewriter.
 The FdtClient driver continues to consume the HOB; this platform does not install
 its optional PlatformHasDeviceTree publication trigger. Firmware-owned DT mode
-and the experimental ACPI mode are separate configurations. Use ACPI_ENABLE=FALSE
+and the experimental ACPI mode are separate configurations. The build rejects enabling both options together. Use ACPI_ENABLE=FALSE
 for this series; no BRS-I conformance claim is made.
 
 ## Board matrix

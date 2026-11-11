@@ -77,8 +77,9 @@ Files: docs/k3-maintained-efi/{README.md,validation.md,capsule-roadmap.md}; buil
 ## Execution status
 
 Tasks 1–4 are implemented in commits 36854829, 6c8c9bac, da59f0aa and 9e8b63bb.
-21 host tests and enabled/disabled RELEASE cross-builds pass. Task 5 documentation
-is prepared; independent review and hardware qualification remain distinct.
+22 host tests and enabled/disabled RELEASE cross-builds pass. Task 5 documentation
+and independent review are complete, including two tested corrections. Hardware
+qualification and capsule implementation remain explicitly subsequent gates.
 
 ## Execution ledger
 

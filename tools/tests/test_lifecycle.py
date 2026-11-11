@@ -11,9 +11,9 @@ class LifecycleTests(unittest.TestCase):
         self.assertTrue((driver / 'K3OsFdtDxe.c').exists(), 'early DXE producer is missing')
         with tempfile.TemporaryDirectory() as tmp:
             exe = str(pathlib.Path(tmp)/'lifecycle')
-            subprocess.run(['cc','-Wall','-Wextra','-Werror','-I'+str(LIB/'Test/Include'),
+            subprocess.run(['cc','-Wall','-Wextra','-Werror','-I'+str(ROOT/'Silicon/Spacemit/Drivers/FdtFixupDxe/Test/Include'), '-I'+str(LIB/'Test/Include'),
                 '-I'+str(ROOT/'Silicon/Spacemit/Include'),'-I'+str(LIB),
-                str(driver/'Test/test_publish.c'),str(LIB/'PrepareFdt.c'),str(LIB/'ReserveFdt.c'),
+                str(driver/'Test/test_publish.c'),str(ROOT/'Silicon/Spacemit/Drivers/FdtFixupDxe/FdtMemoryFixup.c'),str(LIB/'PrepareFdt.c'),str(LIB/'ReserveFdt.c'),
                 '-lfdt','-o',exe],check=True)
             subprocess.run([exe],check=True)
 if __name__ == '__main__': unittest.main()
