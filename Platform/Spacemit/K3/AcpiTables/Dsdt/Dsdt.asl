@@ -1,6 +1,9 @@
 /** @file
-  DSDT v8: COM0 (RSCV0003) + APLIC + ETH0 (GMAC, dwmac-spacemit binding)
-           + USB2 (DWC3) + PCI0 (PCIe root bridge, RISC-V BRS)
+  DSDT v12: v8 base + processor objects (Cpu.asl) + qualified peripheral
+  set (GPIO/I2C2+EEPROM/eSPI+EC+PWM+fan/tsensor) + MPXY (RSCV0005) +
+  RCLK (PRP0001 riscv,rpmi-clock) — the hardware-qualified pico-acpi-v12
+  description promoted from the experiment AML
+  (patches/acpi-kernel/experiments/rpmi-clocks + task4-espi-ec).
 
   Copyright (c) 2026, SpacemiT Co., Ltd. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -12,7 +15,7 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
   // ACPI 6.6 §5.2.12.27: every RINTC hart requires a processor device
   // object (_HID ACPI0007, _UID matching the RINTC AcpiProcessorUid).
   // Cpu.asl provides CPU0-7 plus the CL00/CL01 ACPI0010 containers whose
-  // _UIDs match the PPTT cluster nodes.
+  // _UIDs match the PPTT cluster nodes. Hardware-qualified on v11/v12.
   include ("Cpu.asl")
 
   Scope (_SB) {
@@ -58,7 +61,7 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
           // The K3 UART is an XScale-derived DW 16550 (same IP as the
           // vendor DT node "spacemit,k3-uart", "intel,xscale-uart").
           // The 8250 platform driver gates its PORT_XSCALE fixed-type
-          // quirk (autoconfig bank-switching wedges an earlycon) on
+          // quirk (autoconfig bank-switching wedges the earlycon) on
           // this compatible; generic RSCV0003 devices are unaffected.
           Package () { "compatible", Package () { "spacemit,k3-uart", "intel,xscale-uart" } }
         }
@@ -251,6 +254,238 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
           )
         })
       }
+    }
+
+    // ---- GPIO controller (spacemit,k1-gpio via spacemit,k3-gpio) ------
+    Device (GPIO)
+    {
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x50)
+      Name (_CCA, 0)
+      Name (_CRS, ResourceTemplate ()
+      {
+        QWordMemory (
+          ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+          NonCacheable, ReadWrite,
+          0x0, 0xD4019000, 0xD40190FF, 0x0, 0x100
+        )
+        Interrupt (ResourceConsumer, Level, ActiveHigh, Shared) { 58 }
+      })
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "spacemit,k3-gpio" },
+        }
+      })
+    }
+
+    // ---- I2C controller (spacemit,k1-i2c) ------------------------------
+    // i2c2: EEPROM (atmel,24c02 @ 0x50) — safe read-only test target
+    Device (I2C2)
+    {
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x60)
+      Name (_CCA, 0)
+      Name (_CRS, ResourceTemplate ()
+      {
+        QWordMemory (
+          ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+          NonCacheable, ReadWrite,
+          0x0, 0xD4012000, 0xD4012037, 0x0, 0x38
+        )
+        Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) { 38 }
+      })
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "spacemit,k1-i2c" },
+          Package () { "clock-frequency", 100000 },
+          Package () { "spacemit,func-clock-rate", 31500000 },
+        }
+      })
+      Device (EPR0)
+      {
+        Name (_HID, "PRP0001")
+        Name (_UID, 0)
+        Name (_CRS, ResourceTemplate ()
+        {
+          I2cSerialBus (0x50, ControllerInitiated, 100000,
+            AddressingMode7Bit, "\\_SB.I2C2")
+        })
+        Name (_DSD, Package () {
+          ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+          Package () {
+            Package () { "compatible", "atmel,24c02" },
+            Package () { "pagesize", 8 },
+            Package () { "read-only", 1 },
+          }
+        })
+      }
+    }
+
+    // ---- eSPI controller + ChromeOS EC + EC PWM + fan ----------------
+    // Vendor DT wiring (k3-pico-itx.dts): espi@cac8c000 with the EC as a
+    // child (google,cros-ec-espi) whose shared-memory window is the
+    // 0x84000000 PR aperture; EC IRQ = GPIO bank1 pin11 (ACPI pin 43,
+    // rising edge); EC PWM provider (google,cros-ec-pwm) as an EC child;
+    // board-level pwm-fan consuming EC PWM channel 0.
+    Device (ESPI)
+    {
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x71)
+      Name (_CCA, 1)
+      Name (_CRS, ResourceTemplate ()
+      {
+        QWordMemory (
+          ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+          NonCacheable, ReadWrite,
+          0x0, 0xCAC8C000, 0xCAC8CFFF, 0x0, 0x1000
+        )
+      })
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "spacemit,k3-espi" },
+          Package () { "operating-frequency", 20 },
+          Package () { "watchdog-timeout", 0xffff },
+          Package () { "pr-mem-base0", 0x84000000 },
+          Package () { "pr-mem-base1", 0xcac8c000 },
+          Package () { "io-mode", "single" },
+          Package () { "alert-mode", "io1" },
+          Package () { "alert-type", "open-drain" },
+          Package () { "crc-enable", 1 },
+          Package () { "auto-gating-enable", 1 },
+          Package () { "peripheral-channel-enable", 1 },
+          Package () { "vwire-channel-enable", 1 },
+          Package () { "oob-channel-enable", 1 },
+          Package () { "flash-channel-enable", 1 }
+        }
+      })
+
+      Device (EC0)
+      {
+        Name (_HID, "PRP0001")
+        Name (_UID, 0)
+        Name (_CCA, 1)
+        Name (_CRS, ResourceTemplate ()
+        {
+          // eSPI PR shared-memory window (EC memmap + command interface)
+          QWordMemory (
+            ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+            NonCacheable, ReadWrite,
+            0x0, 0x84000000, 0x84000FFF, 0x0, 0x1000
+          )
+          // EC event line: GPIO bank 1 pin 11, rising edge
+          GpioInt (Edge, ActiveHigh, Exclusive, PullUp, 0x0000,
+            "\\_SB.GPIO", 0x00, ResourceConsumer, ,
+            ) { 43 }
+        })
+        Name (_DSD, Package () {
+          ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+          Package () {
+            Package () { "compatible", "google,cros-ec-espi" }
+          }
+        })
+
+        Device (PWM0)
+        {
+          Name (_HID, "PRP0001")
+          Name (_UID, 0)
+          Name (_DSD, Package () {
+            ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+            Package () {
+              Package () { "compatible", "google,cros-ec-pwm" }
+            }
+          })
+        }
+      }
+    }
+
+    Device (FAN0)
+    {
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x72)
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "pwm-fan" },
+          // PWM specifier: provider reference, channel 0, period
+          // (EC_PWM_MAX_DUTY 0xffff — the cros-ec provider has a fixed
+          // period), flags 0.
+          Package () { "pwms", Package () {
+            \_SB.ESPI.EC0.PWM0, 0, 0xffff, 0
+          } },
+          // Duty-cycle states for the cooling device: 30%, 60%, 80%, 100%.
+          // State 0 is a minimum-duty floor (not off): the no-fan thermal
+          // equilibrium sits near the first trip, and a fan that fully
+          // stops below the trips oscillates on/off across it.
+          Package () { "cooling-levels", Package () { 77, 153, 204, 255 } }
+        }
+      })
+    }
+
+    // ---- RPMI clock service (SBI MPXY mailbox + clk-rpmi consumer) ----
+    // Firmware: ESOS RPMI CLOCK service group on MPXY channel 8 (msg proto
+    // RPMI = 0). The mailbox controller binds via its assigned HID; the
+    // clock device consumes it through the fwnode "mboxes" reference
+    // (same _DSD reference mechanism as the fan's "pwms"), with the
+    // 2-cell specifier (channel_id, msg_proto_id) resolved by the mpxy
+    // driver's fw_xlate.
+    Device (MPXY)
+    {
+      Name (_HID, "RSCV0005")
+      Name (_UID, 0x73)
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "#mbox-cells", 2 }
+        }
+      })
+    }
+
+    Device (RCLK)
+    {
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x74)
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "riscv,rpmi-clock" },
+          Package () { "mboxes", Package () {
+            \_SB.MPXY, 8, 0
+          } }
+        }
+      })
+    }
+
+    // ---- Thermal sensor (spacemit,k1-tsensor) ------------------------
+    Device (TSEN)
+    {
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x70)
+      Name (_CCA, 0)
+      Name (_CRS, ResourceTemplate ()
+      {
+        QWordMemory (
+          ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+          NonCacheable, ReadWrite,
+          0x0, 0xD4018000, 0xD40180FF, 0x0, 0x100
+        )
+        Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) { 61 }
+      })
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "spacemit,k3-tsensor" },
+          /* Mirror the kernel DT tsensor node (k3.dtsi): 7 measurement
+           * points (Top, VPU, GPU, Cluster0-3); ch1 unwired on this SoC;
+           * board temperature offset 274. Consumed by the k3_tsensor
+           * driver via device_property_read_u32_array. */
+          Package () { "sensor_range", Package () { 0, 7 } },
+          Package () { "tsensor_map", Package () { 1, 0, 1, 1, 1, 1, 1, 1 } },
+          Package () { "temperature_offset", 274 }
+        }
+      })
     }
   }
 }
