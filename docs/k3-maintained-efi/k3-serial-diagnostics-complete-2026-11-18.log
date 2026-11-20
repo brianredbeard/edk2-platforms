@@ -1,0 +1,248 @@
+[    2.321325] evm: security.selinux
+[    2.321325] evm: security.selinux
+[    2.328027] evm: security.SMACK64 (disabled)
+[    2.328027] evm: security.SMACK64 (disabled)
+[    2.336676] evm: security.SMACK64EXEC (disabled)
+[    2.336676] evm: security.SMACK64EXEC (disabled)
+[    2.346021] evm: security.SMACK64TRANSMUTE (disabled)
+[    2.346021] evm: security.SMACK64TRANSMUTE (disabled)
+[    2.356248] evm: security.SMACK64MMAP (disabled)
+[    2.356248] evm: security.SMACK64MMAP (disabled)
+[    2.365602] evm: security.apparmor (disabled)
+[    2.365602] evm: security.apparmor (disabled)
+[    2.374418] evm: security.ima
+[    2.374418] evm: security.ima
+[    2.380418] evm: security.capability
+[    2.380418] evm: security.capability
+[    2.387651] evm: HMAC attrs: 0x1
+[    2.387651] evm: HMAC attrs: 0x1
+[    2.411789] Running certificate verification RSA selftest
+[    2.411789] Running certificate verification RSA selftest
+[    2.424043] Loaded X.509 cert 'Certificate verification self-testing key: f58703bb33ce1b73ee02eccdee5b8817518fe3db'
+[    2.424043] Loaded X.509 cert 'Certificate verification self-testing key: f58703bb33ce1b73ee02eccdee5b8817518fe3db'
+[    2.446093] Running certificate verification ECDSA selftest
+[    2.446093] Running certificate verification ECDSA selftest
+[    2.479073] Loaded X.509 cert 'Certificate verification ECDSA self-testing key: 2900bcea1deb7bc8479a84a23d758efdfdd2b2d3'
+[    2.479073] Loaded X.509 cert 'Certificate verification ECDSA self-testing key: 2900bcea1deb7bc8479a84a23d758efdfdd2b2d3'
+[    2.504571] clk: Not disabling unused clocks
+[    2.504571] clk: Not disabling unused clocks
+[    2.513226] PM: genpd: Disabling unused power domains
+[    2.513226] PM: genpd: Disabling unused power domains
+[    2.524780] Freeing unused kernel image (initmem) memory: 7432K
+[    2.524780] Freeing unused kernel image (initmem) memory: 7432K
+[    2.540369] Checked W+X mappings: passed, no W+X pages found
+[    2.540369] Checked W+X mappings: passed, no W+X pages found
+[    2.551863] Run /bin/sh as init process
+[    2.551863] Run /bin/sh as init process
+sh: cannot set terminal process group (-1): Inappropriate ioctl for device
+sh: no job control in this shell
+sh-5.2# echo INPUT_WORKS; uname -a
+INPUT_WORKS
+Linux (none) 6.12.0-dbg1 #4 SMP PREEMPT_DYNAMIC Wed Nov 18 18:15:50 UTC 2026 riscv64 GNU/Linux
+sh-5.2# ls /sys/bus/pci/devices/
+ls: cannot access '/sys/bus/pci/devices/': No such file or directory
+sh-5.2# ls /sys/class/nvme/ 2>&1; ls /dev/nvme*
+ls: cannot access '/sys/class/nvme/': No such file or directory
+ls: cannot access '/dev/nvme*': No such file or directory
+ /dev; echo MOUNTEDoc proc /proc; mount -t sysfs sys /sys; mount -t devtmpfs dev 
+MOUNTED
+sh-5.2# ls /sys/bus/pci/devices/
+0000:00:00.0
+ull5.2# cat /sys/bus/pci/devices/*/vendor /sys/bus/pci/devices/*/device 2>/dev/nu
+0x1dee
+0x5216
+vices/0000:00:00.0/classci/devices/0000:00:00.0/driver 2>&1; cat /sys/bus/pci/dev
+ls: cannot access '/sys/bus/pci/devices/0000:00:00.0/driver': No such file or directory
+0x010802
+sh-5.2# cat /sys/bus/pci/devices/0000:00:00.0/resource | head -3
+sh: head: command not found
+sh-5.2# cat /proc/interrupts | head -20
+sh: head: command not found
+sh-5.2# cat /sys/bus/pci/devices/0000:00:00.0/resource
+0x0000001110020000 0x0000001110023fff 0x0000000000140204
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000001110000000 0x000000111001ffff 0x0000000000046200
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+sh-5.2# ls /sys/bus/pci/devices/0000:00:00.0/msi_irqs/ 2>&1
+ls: cannot access '/sys/bus/pci/devices/0000:00:00.0/msi_irqs/': No such file or directory
+sh-5.2# cat /proc/interrupts
+           CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+ 10:        715        427        734        499        161        261        380        558  RISC-V INTC   5 Edge      riscv-timer
+ 11:        381          0          0          0          0          0          0          0  APLIC-MSI-RSCV0002:00  42 Level   -fasteoi   ttyS0
+ 12:          0          0          0          0          0          0          0          0  RISC-V INTC  12 Edge      riscv-kvm
+ 15:          0          0          0          0          0          0          0          0  RISC-V INTC  13 Edge      riscv-pmu
+IPI0:        25         14         22         14         23         16         16         40  Rescheduling interrupts
+IPI1:       349        189        222        302        105        133        208        224  Function call interrupts
+IPI2:         0          0          0          0          0          0          0          0  CPU stop interrupts
+IPI3:         0          0          0          0          0          0          0          0  CPU stop (for crash dump) interrupts
+IPI4:         0          0          0          0          0          0          0          0  IRQ work interrupts
+IPI5:         0          0          0          0          0          0          0          0  Timer broadcast interrupts
+IPI6:         0          0          0          0          0          0          0          0  CPU backtrace interrupts
+IPI7:         0          0          0          0          0          0          0          0  KGDB roundup interrupts
+sh-5.2# ls /sys/devices/platform/
+808622B7:00  RSCV0003:00  power		 rtc-efi.0    sifive_edac.0
+PRP0001:00   efivars.0	  reg-dummy	 sbi-cpuidle  uevent
+RSCV0002:00  kgdboc	  riscv-pmu-sbi  serial8250
+sh-5.2# ls /sys/bus/usb/devices/
+u0/cpuidle/state*/name /sys/devices/system/cpu/cpu0/cpuidle/state*/descem/cpu/cpu
+ls: cannot access '/sys/devices/system/cpu/cpu0/cpuidle/': No such file or directory
+cat: '/sys/devices/system/cpu/cpu0/cpuidle/state*/name': No such file or directory
+cat: '/sys/devices/system/cpu/cpu0/cpuidle/state*/desc': No such file or directory
+sh-5.2# ls /sys/devices/platform/PRP0001:00/
+driver_override  modalias  subsystem  waiting_for_supplier
+firmware_node	 power	   uevent
+sh-5.2# 
+sh-5.2# 
+sh-5.2# 
+sh-5.2# 
+sh-5.2# 
+devices/0000:00:00.0/msi_bus; cat /proc/tty/driver/serial; echo DIAG_ENDbus/pci/ 
+DIAG_BEGIN
+6.12.0-dbg1
+BOOT_IMAGE=(hd0,gpt2)/boot/vmlinuz-dbg1 root=UUID=3c7c2b87-67c7-478b-a1bf-3f9dd49803dc console=ttyS0,115200n8 earlycon=uart8250,mmio32,0xd4017000 keep_bootcon rdinit=/bin/sh clk_ignore_unused
+6.12.0-284.rv.0.el10.riscv64  keys
+of:Neth0TCspacemit,k3-dwmacCsnps,dwmac-5.40a
+0
+acpi:808622B7:
+0
+PCI_CLASS=10802
+PCI_ID=1DEE:5216
+PCI_SUBSYS_ID=1DEE:5216
+PCI_SLOT_NAME=0000:00:00.0
+MODALIAS=pci:v00001DEEd00005216sv00001DEEsd00005216bc01sc08i02
+ls: cannot access '/sys/bus/pci/devices/0000:00:00.0/driver': No such file or directory
+-rw-r--r-- 1 root root 4096 Jan  1 02:03 /sys/bus/pci/devices/0000:00:00.0/msi_bus
+serinfo:1.0 driver revision:
+0: uart:XScale mmio:0xD4017000 irq:11 tx:5642 rx:1303 RTS|DTR
+1: uart:unknown port:00000000 irq:0
+2: uart:unknown port:00000000 irq:0
+3: uart:unknown port:00000000 irq:0
+DIAG_END
+o DIAG_RESOURCES_END echo "$d"; cat "$d/path" "$d/status" 2>/dev/null; done; ech 
+DIAG_RESOURCES
+80000000-80000fff : AMZN0001:00
+c0a00000-c0a0ffff : 808622B7:00
+cac80000-cac81fff : PRP0001:00
+d4017000-d40170ff : RSCV0003:00
+  d4017000-d40170ff : serial
+e0804000-e0807fff : RSCV0002:00
+  e0804000-e0807fff : RSCV0002:00 RSCV0002:00
+100000000-1000fffff : Reserved
+100100000-1001fffff : System RAM
+100200000-1006fffff : Reserved
+100700000-1007fffff : System RAM
+100800000-100e03fff : Reserved
+100e04000-4ffe3cfff : System RAM
+  178000000-178001fff : Reserved
+  178002000-17a6dc96f : Kernel image
+    178002000-178b7515f : Kernel code
+    179400000-179bfffff : Kernel rodata
+    179e00000-17a5089ff : Kernel data
+    17a509000-17a6dc96f : Kernel bss
+  17a6dc970-17a7fffff : Reserved
+  4dfa00000-4ef9fffff : Reserved
+  4efbce000-4efbcefff : Reserved
+  4efdce000-4f4f44fff : Reserved
+  4fa3bb000-4fd3bafff : Reserved
+  4fd3bb000-4fd3bcfff : Reserved
+  4fd3c6000-4fd3c6fff : Reserved
+  4fd3cb000-4fd3cbfff : Reserved
+  4fdb96000-4feb95fff : Reserved
+  4feb96000-4feb96fff : Reserved
+  4ff0c8000-4ff0c8fff : Reserved
+  4ff0fe000-4ff0fefff : Reserved
+  4ff29b000-4ff313fff : Reserved
+  4ff314000-4ffb14fff : Reserved
+  4ffb15000-4ffc1cfff : Reserved
+  4ffc1e000-4ffc20fff : Reserved
+  4ffc21000-4ffe3cfff : Reserved
+4ffe3d000-4ffffefff : Reserved
+4fffff000-4ffffffff : System RAM
+  4fffff000-4ffffffff : Reserved
+1100000000-110fffffff : PCI ECAM
+1110000000-117fffffff : PCI Bus 0000:00
+  1110000000-111001ffff : 0000:00:00.0
+  1110020000-1110023fff : 0000:00:00.0
+1800000000-18ffffffff : PCI Bus 0000:00
+1
+255
+0
+ls: cannot access '/sys/bus/pci/devices/0000:00:00.0/iommu_group': No such file or directory
+cat: /proc/fb: No such file or directory
+/sys/class/drm:
+version
+
+/sys/class/graphics:
+fbcon
+
+/sys/firmware/acpi/tables:
+APIC  DSDT  FACP  MCFG	PPTT  RHCT  data  dynamic
+/sys/bus/acpi/devices/808622B7:00
+\_SB_.USB2
+/sys/bus/acpi/devices/AMZN0001:00
+\_SB_.PCI0.DBI0
+/sys/bus/acpi/devices/LNXSYBUS:00
+\_SB_
+/sys/bus/acpi/devices/LNXSYBUS:01
+\_TZ_
+/sys/bus/acpi/devices/LNXSYSTM:00
+\
+/sys/bus/acpi/devices/PNP0A08:00
+\_SB_.PCI0
+/sys/bus/acpi/devices/PNP0C02:00
+\_SB_.PCI0.RES0
+/sys/bus/acpi/devices/PRP0001:00
+\_SB_.ETH0
+/sys/bus/acpi/devices/RSCV0002:00
+\_SB_.IC00
+/sys/bus/acpi/devices/RSCV0003:00
+\_SB_.COM0
+DIAG_RESOURCES_END
+FINAL_ENDces/0000:00:00.0/power/runtime_status; ls /sys/kernel/debug; echo DIAG_F
+DIAG_FINAL
+/usr/bin/hexdump
+/usr/bin/dmesg
+sh: modprobe: command not found
+ls: cannot access '/sys/devices/platform/PRP0001:00/driver': No such file or directory
+ls: cannot access '/sys/devices/platform/808622B7:00/driver': No such file or directory
+ttyS0                -W- (EC    a)    4:64
+uart8250             RW- (E B p  )
+           CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+ 10:       8115      15012      18209      19276      17576      12502      23294      19735  RISC-V INTC   5 Edge      riscv-timer
+ 11:       1112          0          0          0          0          0          0          0  APLIC-MSI-RSCV0002:00  42 Level   -fasteoi   ttyS0
+ 12:          0          0          0          0          0          0          0          0  RISC-V INTC  12 Edge      riscv-kvm
+ 15:          0          0          0          0          0          0          0          0  RISC-V INTC  13 Edge      riscv-pmu
+IPI0:        27         14         53         14         23         16         16         40  Rescheduling interrupts
+IPI1:       754       1764       1399       1951       2298        881       1997       2265  Function call interrupts
+IPI2:         0          0          0          0          0          0          0          0  CPU stop interrupts
+IPI3:         0          0          0          0          0          0          0          0  CPU stop (for crash dump) interrupts
+IPI4:         0          0          0          0          0          0          0          0  IRQ work interrupts
+IPI5:         0          0          0          0          0          0          0          0  Timer broadcast interrupts
+IPI6:         0          0          0          0          0          0          0          0  CPU backtrace interrupts
+IPI7:         0          0          0          0          0          0          0          0  KGDB roundup interrupts
+active
+DIAG_FINAL_END
+bin/kmod /usr/bin/kmod /sbin/insmod /usr/sbin/insmod; echo DIAG_TOOLS_ENDprobe /b
+DIAG_TOOLS
+/usr/local/bin:/usr/bin
+-rwxr-xr-x 1 root root 150280 Jan  1 00:00 /bin/kmod
+lrwxrwxrwx 1 root root     11 Jan  1 00:00 /sbin/insmod -> ../bin/kmod
+lrwxrwxrwx 1 root root     11 Jan  1 00:00 /sbin/modprobe -> ../bin/kmod
+-rwxr-xr-x 1 root root 150280 Jan  1 00:00 /usr/bin/kmod
+lrwxrwxrwx 1 root root     11 Jan  1 00:00 /usr/sbin/insmod -> ../bin/kmod
+lrwxrwxrwx 1 root root     11 Jan  1 00:00 /usr/sbin/modprobe -> ../bin/kmod
+DIAG_TOOLS_END
+sh-5.2# /sbin/modprobe -n -v nvme; echo MODULE_LOOKUP_DONE
+modprobe: FATAL: Module nvme not found in directory /lib/modules/6.12.0-dbg1
+MODULE_LOOKUP_DONE
+sh-5.2# 
+
