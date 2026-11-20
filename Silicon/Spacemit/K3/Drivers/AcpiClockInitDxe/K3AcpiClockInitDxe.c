@@ -7,12 +7,14 @@
   docs/k3-maintained-efi/acpi-platform-management-architecture.md).
 
   The UEFI device drivers (DwEqos/UsbHcd/PcieHostBridgeLib/...) already enable
-  their clocks, SKU-gated, *when BDS connects the device*. This pass adds the
-  missing determinism: it idempotently re-asserts the enabled state for every
-  SKU-active ACPI device-block clock, so a block the OS will drive under ACPI is
-  clocked even if BDS never connected it (e.g. a NIC or PCIe slot with no boot
-  media). Enabling is idempotent (register bit-set), so re-asserting a clock a
-  driver already enabled is harmless.
+  their clocks, SKU-gated, *when BDS connects the device*. This pass covers
+  only the FIRMWARE-UNOWNED blocks (TSEN, ESPI) that no UEFI driver ever
+  connects. GMAC/PCIe/USB are deliberately excluded: their UEFI device
+  drivers enable their clocks during BDS connect (DwEqosDxe,
+  K3PcieHostBridgeLib, UsbHcdInitDxe), so ReadyToBoot re-assertion would be
+  redundant — the OS inherits those blocks clocked because BDS connected
+  them, not because of this driver. Enabling is idempotent (register
+  bit-set) should a block ever be added here.
 
   Runs at ReadyToBoot: after BDS connect and SKU selection, before the OS reads
   ACPI. DwEqos's ExitBootServices handler quiesces the MAC but does not gate the

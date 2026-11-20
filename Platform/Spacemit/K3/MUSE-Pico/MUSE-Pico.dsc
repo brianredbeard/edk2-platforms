@@ -685,7 +685,10 @@
 
 !if $(ACPI_ENABLE) == TRUE
   gEfiMdeModulePkgTokenSpaceGuid.PcdAcpiExposedTableVersions|0x20
-  # Required so K3AcpiNvsDxe can walk/patch the DSDT via the ACPI SDT protocol.
+  # ACPI SDT protocol (walk/patch installed tables). Historical note: this
+  # was set for K3AcpiNvsDxe, which is NOT in the DSC/FDF components — the
+  # PCC power model is intentionally unwired (see the PCC drafts commit).
+  # The SDT protocol is kept installed for table tooling/future consumers.
   gEfiMdeModulePkgTokenSpaceGuid.PcdInstallAcpiSdtProtocol|TRUE
   # definition of X100
   # ACPI describes ONLY the 8 X100 (rv64imafdcvh) harts in clusters C0/C1.
@@ -878,10 +881,12 @@
   MdeModulePkg/Universal/Acpi/AcpiPlatformDxe/AcpiPlatformDxe.inf
   # ACPI tables
   Platform/Spacemit/K3/AcpiTables/K3AcpiTables.inf
-  # Deterministic OS-visible device-block clock bring-up at ReadyToBoot
-  # (GMAC/PCIe/USB/TSEN): ACPI leaves clock control to firmware, so every
-  # OS-driven block must be clocked and out of reset at handoff even if BDS
-  # never connected it.
+  # Deterministic clock bring-up at ReadyToBoot for the FIRMWARE-UNOWNED
+  # ACPI device blocks (TSEN, ESPI): blocks no UEFI driver ever connects,
+  # so nothing else leaves them clocked for the OS. GMAC/PCIe/USB are NOT
+  # covered here — their UEFI device drivers enable their clocks during
+  # BDS connect (DwEqosDxe, K3PcieHostBridgeLib, UsbHcdInitDxe); see the
+  # mBringup[] table in the driver.
   Silicon/Spacemit/K3/Drivers/AcpiClockInitDxe/K3AcpiClockInitDxe.inf
 !elseif $(K3_OS_DTB_ENABLE) == FALSE
   Silicon/RISC-V/ProcessorPkg/Universal/FdtDxe/FdtDxe.inf {

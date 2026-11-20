@@ -1,7 +1,10 @@
 ## @file
-#  K3 ACPI clock boot bring-up: idempotently enables every SKU-active ACPI
-#  device-block clock at ReadyToBoot so the OS (which has no clock driver under
-#  ACPI) inherits a working, firmware-owned clock state.
+#  K3 ACPI clock boot bring-up: idempotently enables the FIRMWARE-UNOWNED
+#  ACPI device-block clocks (TSEN, ESPI) at ReadyToBoot so the OS (which has
+#  no clock driver under ACPI) inherits a working state for blocks no UEFI
+#  driver ever connects. GMAC/PCIe/USB clocks are enabled by their UEFI
+#  device drivers during BDS connect and are deliberately not re-asserted
+#  here; see mBringup[] in the .c.
 #
 #  Copyright (c) 2026, SpacemiT Co., Ltd. All rights reserved.
 #
