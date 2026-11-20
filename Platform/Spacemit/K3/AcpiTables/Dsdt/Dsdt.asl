@@ -34,24 +34,27 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
     Name (SBP, 0)   /* _SB _OSC Support (confirmed) */
     Method (_OSC, 4, NotSerialized)
     {
-      CreateDWordField (Arg3, 0, CDW1)   /* Return Value (Status) */
-      CreateDWordField (Arg3, 4, CDW2)   /* Support Field */
-      CreateDWordField (Arg3, 8, CDW3)   /* Control Field */
+      /*
+       * The kernel passes a 2-DWORD buffer for the platform _OSC:
+       * DWORD[0] = Query/Status, DWORD[1] = Support. There is no
+       * Control DWORD — accessing offset 8 raises AE_AML_BUFFER_LIMIT.
+       */
+      CreateDWordField (Arg3, 0, CDW1)   /* Query/Status */
+      CreateDWordField (Arg3, 4, CDW2)   /* Support */
 
       /* Platform-wide capabilities UUID */
       If (LEqual (Arg0, ToUUID ("0811B06E-4A27-44F9-8D60-3CBBC22E7B48")))
       {
-        /* Firmware-supported capabilities (PCLPI only) */
+        /* Confirm only PCLPI (0x80): backed by _LPI + SBI HSM suspend */
         And (CDW2, 0x80, SBP)
         Store (SBP, CDW2)
-        Store (0, CDW3)
+        Store (0, CDW1)   /* success */
         Return (Arg3)
       }
 
       /* Unknown UUID: unsupported */
       Store (1, CDW1)   /* _OSC_FAILURE */
       And (CDW2, 0, CDW2)
-      And (CDW3, 0, CDW3)
       Return (Arg3)
     }
 
