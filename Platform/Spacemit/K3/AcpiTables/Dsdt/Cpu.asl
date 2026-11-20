@@ -34,7 +34,7 @@
       0,                        /* ResidencyCounterFreq */ \
       0,                        /* EnabledParentState */ \
       ResourceTemplate () {     \
-        Register (FFixedHW, 64, 0, 0x1900000000000000, 4) \
+        Register (FFixedHW, 64, 0, 0x1000000090000000, 4) \
       },                        \
       0,                        /* Residency Counter Address */ \
       0,                        /* Usage Counter Address */ \
@@ -49,7 +49,7 @@
       0,                        /* ResidencyCounterFreq */ \
       0,                        /* EnabledParentState */ \
       ResourceTemplate () {     \
-        Register (FFixedHW, 64, 0, 0x1910000000000000, 4) \
+        Register (FFixedHW, 64, 0, 0x1000000091000000, 4) \
       },                        \
       0,                        /* Residency Counter Address */ \
       0,                        /* Usage Counter Address */ \
