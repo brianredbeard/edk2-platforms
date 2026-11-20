@@ -33,48 +33,32 @@
  * the cluster state is qualified (audit requirement: validate wake
  * mechanism, not just boot success).
  */
-#define LPI_STATES              \
-  Name (_LPI, Package () {      \
-    0,                          /* MinResidency (level-wide, unused) */ \
-    0,                          /* WakeLatency (level-wide, unused) */ \
-    2,                          /* Count of state packages */ \
-    /* State 0: shallow WFI (index-0 special path: cpu_do_idle) */ \
-    Package () {                \
-      1,                        /* MinResidency (us) */ \
-      1,                        /* WakeLatency (us) */ \
-      1,                        /* Flags: BIT(0) enabled */ \
-      0,                        /* ArchFlags (WFI: timer runs) */ \
-      0,                        /* ResidencyCounterFreq */ \
-      0,                        /* EnabledParentState */ \
-      ResourceTemplate () {     \
-        Register (FFixedHW, 64, 0, 0, 4) \
-      },                        \
-      0,                        /* Residency Counter Address */ \
-      0,                        /* Usage Counter Address */ \
-      "WFI"                     /* Name */ \
-    },                          \
-    /* State 1: SBI WFI (retentive, suspend param 0, timer runs).
-     * SAFE first cut: proves the _LPI -> cpuidle -> SBI HSM suspend
-     * pipeline end-to-end without hang risk. The non-retentive CPU_NR
-     * (0x90000000) hangs the boot: the local timer stops and 6.12
-     * RISC-V has no arch_get_idle_state_flags override to trigger
-     * tick broadcast. Replace with CPU_NR once the kernel-side
-     * timer-stop support lands. */ \
-    Package () {                \
-      950,                      /* MinResidency (us) */ \
-      500,                      /* WakeLatency (us) */ \
-      1,                        /* Flags: BIT(0) enabled */ \
-      0,                        /* ArchFlags (retentive: timer runs) */ \
-      0,                        /* ResidencyCounterFreq */ \
-      0,                        /* EnabledParentState */ \
-      ResourceTemplate () {     \
-        Register (FFixedHW, 64, 0, 0x1000000000000000, 4) \
-      },                        \
-      0,                        /* Residency Counter Address */ \
-      0,                        /* Usage Counter Address */ \
-      "SBI_WFI"                 /* Name */ \
-    }                           \
-  })
+/*
+ * _LPI REMOVED from this boot cycle (audit 2026-11-20, round 2):
+ * the deployed OpenSBI's __rpmi_hsm_suspend() has NO genuinely
+ * retentive path. Only sbi param 0x90000000 takes the per-CPU
+ * power-down branch; EVERY other value — including SBI_SUSPEND_RET_DEFAULT
+ * (type 0, what a "retentive WFI" state would request) — takes the
+ * CLUSTER power-down vote + D-cache disable + L2 snoop clear before
+ * WFI (k3_corepm.c __rpmi_hsm_suspend dispatch). The rpmi-hsm device
+ * never returns ENOTSUPP, so the kernel-facing sbi_hsm_hart_suspend()
+ * default plain-wfi fallback is unreachable on this platform.
+ *
+ * Consequences: no _LPI state is safely expressible against this
+ * firmware — CPU_NR (0x90000000) hung the boot without the kernel's
+ * arch_get_idle_state_flags override (tick broadcast), and a type-0
+ * "SBI_WFI" is actually a cluster power-down, not a WFI.
+ *
+ * PREREQUISITE for restoring _LPI (firmware, not AML): implement a
+ * genuine retentive default in OpenSBI — __rpmi_hsm_suspend() (or the
+ * rpmi-hsm hart_suspend) must special-case SBI_SUSPEND_RET_DEFAULT as
+ * plain wfi() with no cache/snoop/vote operations, per the SBI HSM
+ * spec. Then re-add: State 0 = WFI (index-0 special path), State 1 =
+ * the qualified suspend state, with the kernel timer-stop override
+ * carried in the validation kernel. See task9-hsm-suspend-audit and
+ * the v13 checklist gate ledger.
+ */
+#define LPI_STATES
 
 #ifndef CPPC_ENABLE
 #define CPU_DEVICE(CpuName, Uid)    \
