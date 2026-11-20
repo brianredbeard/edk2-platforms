@@ -155,14 +155,14 @@ STATIC CONST CLOCK_CONFIG  ModuleConfig[] = {
     "GMAC1_TX", 0x2CE14CAB, 1,
     NULL,
     {
-      { K3_EMAC0_CLK_RES_CTRL, BIT8,                  BIT8,                  0     },
+      { K3_EMAC1_CLK_RES_CTRL, BIT8,                  BIT8,                  0     },
     }
   },
   {
     "GMAC1_PHY", 0xCC56277C, 1,
     NULL,
     {
-      { K3_EMAC0_CLK_RES_CTRL, BIT14,                 0,                     BIT14 },
+      { K3_EMAC1_CLK_RES_CTRL, BIT14,                 0,                     BIT14 },
     }
   },
   {
@@ -177,14 +177,14 @@ STATIC CONST CLOCK_CONFIG  ModuleConfig[] = {
     "GMAC2_TX", 0x3E54E345, 1,
     NULL,
     {
-      { K3_EMAC0_CLK_RES_CTRL, BIT8,                  BIT8,                  0     },
+      { K3_EMAC2_CLK_RES_CTRL, BIT8,                  BIT8,                  0     },
     }
   },
   {
     "GMAC2_PHY", 0x8BF65DAC, 1,
     NULL,
     {
-      { K3_EMAC0_CLK_RES_CTRL, BIT14,                 0,                     BIT14 },
+      { K3_EMAC2_CLK_RES_CTRL, BIT14,                 0,                     BIT14 },
     }
   },
   {
@@ -460,26 +460,31 @@ GetCurrentClockState (
 }
 
 STATIC
-VOID
+BOOLEAN
 EnableClock (
   IN  UINT32  Index
   )
 {
   UINT32  I;
+  BOOLEAN AllRowsProgrammed = TRUE;
 
   for (I = 0; I < ModuleConfig[Index].ConfigNum; I++) {
     /*
      * Guard against table bugs: an entry whose ConfigNum exceeds its
      * defined rows reads zero-filled config, and a zero RegAddr write
      * resets the SoC (observed with the GMAC*_TX/PHY rows before their
-     * ConfigNum was corrected). Never touch address 0.
+     * ConfigNum was corrected). Never touch address 0. A skipped row
+     * means the clock is NOT enabled: report failure so the caller does
+     * not mark state or claim success for a programming it did not do
+     * (the historical behavior silently reported success).
      */
     if (ModuleConfig[Index].Config[I].RegAddr == 0) {
       DEBUG ((
         DEBUG_ERROR,
-        "%a: %a config[%u] has zero register address, skipping\n",
+        "%a: %a config[%u] has zero register address\n",
         __func__, ModuleConfig[Index].ClockName, I
         ));
+      AllRowsProgrammed = FALSE;
       continue;
     }
 
@@ -489,6 +494,8 @@ EnableClock (
                      ModuleConfig[Index].Config[I].RegValEnable
                      );
   }
+
+  return AllRowsProgrammed;
 }
 
 STATIC
@@ -530,7 +537,10 @@ SetClockState (
   ClockCtrlInstance = CLOCKCTRL_INSTANCE_FROM_THIS (This);
 
   if (ENABLE_CLOCK == ClockState) {
-    EnableClock (Index);
+    if (!EnableClock (Index)) {
+      return EFI_DEVICE_ERROR;
+    }
+
     ClockCtrlInstance->State[Index / 64] |= 1UL << (Index % 64);
   } else {
     DisableClock (Index);

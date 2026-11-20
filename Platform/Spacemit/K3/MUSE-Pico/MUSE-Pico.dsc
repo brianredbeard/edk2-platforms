@@ -688,6 +688,13 @@
   # Required so K3AcpiNvsDxe can walk/patch the DSDT via the ACPI SDT protocol.
   gEfiMdeModulePkgTokenSpaceGuid.PcdInstallAcpiSdtProtocol|TRUE
   # definition of X100
+  # ACPI describes ONLY the 8 X100 (rv64imafdcvh) harts in clusters C0/C1.
+  # The 8 A100 harts (CPU8-15, rv64imafdcv, no h/v) are NOT ACPI-described:
+  # all qualified ACPI evidence (MADT/RHCT/PPTT/Cpu.asl/DSDT) covers 8 CPUs,
+  # and exposing 16 would require A100 MADT/RHCT/PPTT/processor objects plus
+  # an AIA topology decision. A100 harts remain usable only via DT boots.
+  # PcdHartCount (16) is NOT consumed by any ACPI table; do not "fix" it to
+  # match without first deciding the A100 contract.
   gSpacemitK3TokenSpaceGuid.PcdX100HartCount|0x8
 
 !endif # ACPI_ENABLE

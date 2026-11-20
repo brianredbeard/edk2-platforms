@@ -33,7 +33,14 @@ ResetCold (
   )
 {
   SbiSystemReset (SBI_SRST_RESET_TYPE_COLD_REBOOT, SBI_SRST_RESET_REASON_NONE);
-  // A successful SBI reset never returns. Do not resume after a failed reset.
+  /*
+   * A successful SBI reset never returns. TERMINAL BY DESIGN: if the SBI
+   * srst request fails there is no fallback path (no watchdog armed by
+   * this library, no EC reset request wired), so halt rather than resume
+   * into a half-reset platform. Qualification must exercise the SBI srst
+   * path explicitly (cold/warm/shutdown cycles); a hang here means the
+   * OpenSBI srst extension is broken, not this library.
+   */
   CpuDeadLoop ();
 }
 

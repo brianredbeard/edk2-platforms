@@ -118,6 +118,14 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
 
     Device (USB2)
     {
+      /*
+       * BORROWED ACPI ID: "808622B7" is Intel Braswell DWC3. The dwc3
+       * core driver matches it (ACPI_ID_INTEL_BSW) and the K3 DWC3 is
+       * register-compatible, but this ID is not SpacemiT's and implies
+       * Intel-specific quirks in future kernels. Proper fix: PRP0001 +
+       * compatible "snps,dwc3" (the core also matches by compatible);
+       * requires a qualified boot before switching. Linux-only binding.
+       */
       Name (_HID, "808622B7")
       Name (_UID, Zero)
       Name (_CCA, 0)
@@ -203,11 +211,17 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
           CreateDWordField (Arg3, 4, CDW2)
           CreateDWordField (Arg3, 8, CDW3)
 
-          SUPP = CDW2
-          CTRL = CDW3
-
-          /* Allow: PCIeHotPlug SHPCHotPlug PME AER PCIeCapability */
-          CTRL &= 0x1F
+          /*
+           * Firmware-supported mask. The platform supports only the
+           * PCIeCapability bit (bit 4: extended config space via MCFG);
+           * hot-plug, SHPC, PME and AER have no firmware backing (no
+           * _PRT, no GPE wiring, no AER handler). SUPP must report what
+           * THIS firmware supports - echoing the OS request (SUPP=CDW2)
+           * misrepresents platform support - and CTRL may only clear
+           * bits the firmware actually granted.
+           */
+          SUPP = CDW2 & 0x10
+          CTRL = CDW3 & SUPP
 
           If (Arg1 != 1) { CDW1 |= 0x08 } /* unknown revision */
           If (CDW3 != CTRL) { CDW1 |= 0x10 } /* capabilities lost */
@@ -239,12 +253,21 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       // PCIe host bridge 0 DBI registers (reserve from generic use).
       Device (DBI0)
       {
-        Name (_HID, "AMZN0001")
+        /*
+     * BORROWED ACPI ID: "AMZN0001" is Amazon Annapurna Labs PCIe DBI
+     * (acpi_get_rc_resources in pcie-al.c). The K3 DBI window is
+     * register-space only and nothing on this kernel binds it, but the
+     * ID is not SpacemiT's and could bind pcie-al on other kernels.
+     * Proper fix: PRP0001 + a documented compatible, or drop _HID for a
+     * pure PNP0C02-style reservation; requires a qualified boot.
+     * Linux-only consideration.
+     */
+    Name (_HID, "AMZN0001")
         Name (_CID, "PNP0C02")
         Name (_UID, 0)
         Name (_CRS, ResourceTemplate () {
           QWordMemory (
-            ResourceProducer, PosDecode, MinFixed, MaxFixed,
+            ResourceConsumer, PosDecode, MinFixed, MaxFixed,
             NonCacheable, ReadWrite,
             0x0,           // AddressGranularity
             0x80000000,    // AddressMinimum (DBI)
