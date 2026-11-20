@@ -29,7 +29,7 @@
     Package () {                \
       950,                      /* MinResidency (us) */ \
       500,                      /* WakeLatency (us) */ \
-      0,                        /* Flags */ \
+      1,                        /* Flags: BIT(0) enabled */ \
       0,                        /* ArchFlags */ \
       0,                        /* ResidencyCounterFreq */ \
       0,                        /* EnabledParentState */ \
@@ -44,7 +44,7 @@
     Package () {                \
       2700,                     /* MinResidency (us) */ \
       1100,                     /* WakeLatency (us) */ \
-      0,                        /* Flags */ \
+      1,                        /* Flags: BIT(0) enabled */ \
       0,                        /* ArchFlags */ \
       0,                        /* ResidencyCounterFreq */ \
       0,                        /* EnabledParentState */ \
