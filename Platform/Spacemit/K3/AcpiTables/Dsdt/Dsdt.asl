@@ -19,6 +19,42 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
   include ("Cpu.asl")
 
   Scope (_SB) {
+    /*
+     * Platform-wide _OSC (UUID 0811B06E-4A27-44F9-8D60-3CBBC22E7B48).
+     * The kernel requests LPI support (OSC_SB_PCLPI_SUPPORT, bit 7/0x80)
+     * during the platform _OSC handshake; without this acknowledgement
+     * acpi_processor_get_lpi_info() returns -EOPNOTSUPP and _LPI states
+     * are never parsed (the silent no-cpuidle failure).
+     *
+     * Firmware confirms ONLY the capabilities it actually provides:
+     * PCLPI (0x80, backed by _LPI on every ACPI0007 + SBI HSM suspend).
+     * All other requested bits are cleared (unsupported by this
+     * firmware), which is the honest response.
+     */
+    Name (SBP, 0)   /* _SB _OSC Support (confirmed) */
+    Method (_OSC, 4, NotSerialized)
+    {
+      CreateDWordField (Arg3, 0, CDW1)   /* Return Value (Status) */
+      CreateDWordField (Arg3, 4, CDW2)   /* Support Field */
+      CreateDWordField (Arg3, 8, CDW3)   /* Control Field */
+
+      /* Platform-wide capabilities UUID */
+      If (LEqual (Arg0, ToUUID ("0811B06E-4A27-44F9-8D60-3CBBC22E7B48")))
+      {
+        /* Firmware-supported capabilities (PCLPI only) */
+        And (CDW2, 0x80, SBP)
+        Store (SBP, CDW2)
+        Store (0, CDW3)
+        Return (Arg3)
+      }
+
+      /* Unknown UUID: unsupported */
+      Store (1, CDW1)   /* _OSC_FAILURE */
+      And (CDW2, 0, CDW2)
+      And (CDW3, 0, CDW3)
+      Return (Arg3)
+    }
+
     Device (IC00)
     {
       Name (_HID, "RSCV0002")
