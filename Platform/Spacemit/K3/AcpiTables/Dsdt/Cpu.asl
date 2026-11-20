@@ -34,31 +34,70 @@
  * mechanism, not just boot success).
  */
 /*
- * _LPI REMOVED from this boot cycle (audit 2026-11-20, round 2):
- * the deployed OpenSBI's __rpmi_hsm_suspend() has NO genuinely
- * retentive path. Only sbi param 0x90000000 takes the per-CPU
- * power-down branch; EVERY other value — including SBI_SUSPEND_RET_DEFAULT
- * (type 0, what a "retentive WFI" state would request) — takes the
- * CLUSTER power-down vote + D-cache disable + L2 snoop clear before
- * WFI (k3_corepm.c __rpmi_hsm_suspend dispatch). The rpmi-hsm device
- * never returns ENOTSUPP, so the kernel-facing sbi_hsm_hart_suspend()
- * default plain-wfi fallback is unreachable on this platform.
+ * _LPI RESTORED (2026-11-20, cycle v18): the prerequisite is met and
+ * hardware-qualified. OpenSBI v16 implements SBI_HSM_SUSPEND_RET_DEFAULT
+ * (type 0) as plain wfi() with zero votes/cache/snoop/IMSIC operations
+ * (patches/opensbi/0001; qualification docs/opensbi-p0-test-window.md:
+ * all 8 harts suspend+resume on IPI/UART/timer wake, 10k-iteration
+ * soak, canary intact, zero lockups).
  *
- * Consequences: no _LPI state is safely expressible against this
- * firmware — CPU_NR (0x90000000) hung the boot without the kernel's
- * arch_get_idle_state_flags override (tick broadcast), and a type-0
- * "SBI_WFI" is actually a cluster power-down, not a WFI.
+ * The RHEL 6.12 kernel already carries the ACPI LPI backend
+ * (drivers/acpi/riscv/cpuidle.c: acpi_processor_ffh_lpi_probe/enter
+ * with the FFH (1<<60)|sbi_param encoding and the index-0 special
+ * path). The arch_get_idle_state_flags override is NOT needed for
+ * these states: type 0 does not stop the local timer (timer-deadline
+ * wake proven), so ArchFlags 0 -> no CPUIDLE_FLAG_TIMER_STOP is the
+ * correct mapping with the weak default.
  *
- * PREREQUISITE for restoring _LPI (firmware, not AML): implement a
- * genuine retentive default in OpenSBI — __rpmi_hsm_suspend() (or the
- * rpmi-hsm hart_suspend) must special-case SBI_SUSPEND_RET_DEFAULT as
- * plain wfi() with no cache/snoop/vote operations, per the SBI HSM
- * spec. Then re-add: State 0 = WFI (index-0 special path), State 1 =
- * the qualified suspend state, with the kernel timer-stop override
- * carried in the validation kernel. See task9-hsm-suspend-audit and
- * the v13 checklist gate ledger.
+ * State layout:
+ *   index 0: shallow WFI — the kernel's index-0 special path,
+ *            cpu_do_idle() without an SBI call.
+ *   index 1: SBI retentive default (type 0) via FFH — the
+ *            qualified in-place wfi suspend.
+ * CPU_NR (0x90000000) and CLUSTER_NR remain NOT exposed: no
+ * non-retentive state is offered until its resume contract is
+ * implemented and qualified (F6), and cluster states are gated on
+ * the ESOS P1 ownership model being driven by real AP traffic.
  */
-#define LPI_STATES
+#define LPI_STATES              \
+  Name (_LPI, Package () {      \
+    0,                          /* MinResidency (level-wide, unused) */ \
+    0,                          /* WakeLatency (level-wide, unused) */ \
+    2,                          /* Count of state packages */ \
+    /* State 0: shallow WFI (index-0 special path: cpu_do_idle) */ \
+    Package () {                \
+      1,                        /* MinResidency (us) */ \
+      1,                        /* WakeLatency (us) */ \
+      1,                        /* Flags: BIT(0) enabled */ \
+      0,                        /* ArchFlags (WFI: timer runs) */ \
+      0,                        /* ResidencyCounterFreq */ \
+      0,                        /* EnabledParentState */ \
+      ResourceTemplate () {     \
+        Register (FFixedHW, 64, 0, 0, 4) \
+      },                        \
+      0,                        /* Residency Counter Address */ \
+      0,                        /* Usage Counter Address */ \
+      "WFI"                     /* Name */ \
+    },                          \
+    /* State 1: SBI retentive default (type 0) — hardware-qualified
+     * (v16: all 8 harts, IPI/UART/timer wake, 10k soak, canary
+     * intact). The kernel's RHEL-6.12 ACPI LPI backend drives
+     * riscv_sbi_hart_suspend(0) -> SBI HSM suspend type 0. */ \
+    Package () {                \
+      950,                      /* MinResidency (us) */ \
+      500,                      /* WakeLatency (us) */ \
+      1,                        /* Flags: BIT(0) enabled */ \
+      0,                        /* ArchFlags (retentive: timer runs) */ \
+      0,                        /* ResidencyCounterFreq */ \
+      0,                        /* EnabledParentState */ \
+      ResourceTemplate () {     \
+        Register (FFixedHW, 64, 0, 0x1000000000000000, 4) \
+      },                        \
+      0,                        /* Residency Counter Address */ \
+      0,                        /* Usage Counter Address */ \
+      "SBI_WFI"                 /* Name */ \
+    }                           \
+  })
 
 #ifndef CPPC_ENABLE
 #define CPU_DEVICE(CpuName, Uid)    \
