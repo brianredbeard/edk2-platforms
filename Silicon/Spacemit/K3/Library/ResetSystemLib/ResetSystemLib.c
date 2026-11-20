@@ -13,72 +13,10 @@
 #include <Uefi/UefiMultiPhase.h>
 
 #include <Library/BaseLib.h>
-#include <Library/DebugLib.h>
-#include <Library/IoLib.h>
+#include <Library/BaseRiscVSbiLib.h>
 
-#include <Library/MemoryManagementLib.h>
-
-#define K3_SOC_WDT_BASE  (FixedPcdGet64(PcdSpacemitWDTRegBase))
-#define K3_MPMU_BASE     (FixedPcdGet64(PcdSpacemitMPMURegBase))
-
-/* Application Clock Gating Register */
-#define PMU_WDTCP_CTRL  (K3_MPMU_BASE + 0x0200)
-#define PMU_ACER        (K3_MPMU_BASE + 0x1020)
-#define PMU_ACGR        (K3_MPMU_BASE + 0x1024)
-
-STATIC
-VOID
-WdtWriteAccess (
-  VOID
-  )
-{
-  MmioWrite32 (K3_SOC_WDT_BASE + 0x00b0, 0xbaba);
-  MmioWrite32 (K3_SOC_WDT_BASE + 0x00b4, 0xeb10);
-}
-
-STATIC
-VOID
-WdtRegWrite (
-  UINT32  Val,
-  UINT64  Reg
-  )
-{
-  WdtWriteAccess ();
-  MmioWrite32 (Reg, Val);
-}
-
-VOID
-WatchDogReset (
-  VOID
-  )
-{
-  UINT32  Value;
-
-  MapRegToGcdMmioSpace (K3_SOC_WDT_BASE, SIZE_4KB);
-  MapRegToGcdMmioSpace (K3_MPMU_BASE, SIZE_4KB * 3);
-
-  /*enable wdt clk & reset*/
-  Value = MmioRead32 (PMU_ACGR);
-  MmioWrite32 (PMU_ACGR, Value | BIT19);
-
-  Value = MmioRead32 (PMU_WDTCP_CTRL);
-  MmioWrite32 (PMU_WDTCP_CTRL, 0x3 | Value);
-  Value = MmioRead32 (PMU_WDTCP_CTRL);
-  MmioWrite32 (PMU_WDTCP_CTRL, (~BIT2) & Value);
-
-  // switch to reset SOC internally, 0: reset by PMIC, 1: reset by watchdog
-  MmioAnd32 (K3_MPMU_BASE + 0x2058, ~BIT14);
-
-  /*set watch dog*/
-  WdtRegWrite (0x0, K3_SOC_WDT_BASE + 0xc0);
-  // set watchdog timeout counter
-  WdtRegWrite (10, K3_SOC_WDT_BASE + 0xbc);
-  WdtRegWrite (0x3, K3_SOC_WDT_BASE + 0xb8);
-  WdtRegWrite (0x1, K3_SOC_WDT_BASE + 0xc8);
-
-  Value = MmioRead32 (PMU_ACER);
-  MmioWrite32 (PMU_ACER, BIT4 | Value);
-}
+// Reset requests cross the SBI boundary without accessing DXE services or
+// physical MMIO. This path is valid both before and after OS virtual mapping.
 
 /**
   Calling this function causes a system-wide reset. This sets
@@ -86,8 +24,7 @@ WatchDogReset (
   is asynchronous to system operation and operates without regard to
   cycle boundaries.
 
-  System reset should not return, if it returns, it means the system does
-  not support cold reset.
+  A returned SBI reset request is a failure; execution halts.
 **/
 VOID
 EFIAPI
@@ -95,7 +32,8 @@ ResetCold (
   VOID
   )
 {
-  WatchDogReset ();
+  SbiSystemReset (SBI_SRST_RESET_TYPE_COLD_REBOOT, SBI_SRST_RESET_REASON_NONE);
+  // A successful SBI reset never returns. Do not resume after a failed reset.
   CpuDeadLoop ();
 }
 
@@ -103,8 +41,8 @@ ResetCold (
   Calling this function causes a system-wide initialization. The processors
   are set to their initial state, and pending cycles are not corrupted.
 
-  System reset should not return, if it returns, it means the system does
-  not support warm reset.
+  If warm reset is unsupported, attempt cold reset. Any returned terminal
+  request halts execution.
 **/
 VOID
 EFIAPI
@@ -112,7 +50,15 @@ ResetWarm (
   VOID
   )
 {
-  WatchDogReset ();
+  EFI_STATUS  Status;
+
+  Status = SbiSystemReset (SBI_SRST_RESET_TYPE_WARM_REBOOT, SBI_SRST_RESET_REASON_NONE);
+  if (Status == EFI_UNSUPPORTED) {
+    // K3 firmware may implement cold reset and shutdown without warm reset.
+    // Do not reinterpret a denied or failed warm reset as permission to retry.
+    SbiSystemReset (SBI_SRST_RESET_TYPE_COLD_REBOOT, SBI_SRST_RESET_REASON_NONE);
+  }
+
   CpuDeadLoop ();
 }
 
@@ -120,8 +66,7 @@ ResetWarm (
   Calling this function causes the system to enter a power state equivalent
   to the ACPI G2/S5 or G3 states.
 
-  System shutdown should not return, if it returns, it means the system does
-  not support shut down reset.
+  A returned SBI shutdown request is a failure; execution halts.
 **/
 VOID
 EFIAPI
@@ -129,7 +74,8 @@ ResetShutdown (
   VOID
   )
 {
-  ASSERT (FALSE);
+  SbiSystemReset (SBI_SRST_RESET_TYPE_SHUTDOWN, SBI_SRST_RESET_REASON_NONE);
+  CpuDeadLoop ();
 }
 
 /**

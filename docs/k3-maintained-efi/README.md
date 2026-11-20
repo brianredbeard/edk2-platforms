@@ -4,6 +4,10 @@ This series replaces an end-user DTB workaround with a firmware-owned OS
 hardware description. It is an opt-in development path for Pico-ITX and COM260
 IFX. It is not a production firmware release or a capsule implementation.
 
+The [Pico-ITX / COM260 IFX comparison](pico-com260-differences.md) records
+board pins, peripheral routing, power topology, private firmware memory
+contracts and flash layout, with source provenance and validation limits.
+
 ## Ownership and compatibility
 
 SpacemiT owns the board identities, wiring, flash layout, hardware description,

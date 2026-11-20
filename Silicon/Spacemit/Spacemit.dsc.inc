@@ -252,7 +252,9 @@
   #                              // significantly impact boot performance
   #  DEBUG_ERROR     0x80000000  // Error
 !if $(DEBUG_ON_SERIAL_PORT) == TRUE
-  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80000047
+  # Errors only: INFO/LOAD/WARN/INIT debug prints flood the serial console and
+  # slow the GRUB menu countdown (see MUSE-Pico.dsc status-code mask note).
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80000000
 !endif
 
   #

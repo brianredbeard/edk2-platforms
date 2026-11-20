@@ -1312,12 +1312,21 @@ DwPcieSetupObIatuForCfgSpace (
     return EFI_INVALID_PARAMETER;
   }
 
+  //
   // Immediate bus under root bus needs type 0 iATU configuration.
+  //
+  // Cover the root bus (bus 0) as well: the root complex answers type-0
+  // config TLPs addressed to bus 0 from its DBI, so an OS that uses the
+  // ECAM window described by MCFG can enumerate the root bus without any
+  // per-access iATU programming. In CFG-shift mode the bus number derives
+  // from CPU address bits [27:20], so a 2 MiB window at ConfigBase maps
+  // [0, 1 MiB) to bus 0 and [1 MiB, 2 MiB) to bus 1.
+  //
   ZeroMem (&AtuCfg, sizeof (AtuCfg));
   AtuCfg.Index = 0;
   AtuCfg.Type = DW_PCIE_ATU_TYPE_CFG0;
-  AtuCfg.CpuAddr = DwPcie->Rp.ConfigBase + SIZE_1MB;
-  AtuCfg.Size = SIZE_1MB;
+  AtuCfg.CpuAddr = DwPcie->Rp.ConfigBase;
+  AtuCfg.Size = 2 * SIZE_1MB;
   AtuCfg.Ctrl2 |= DW_PCIE_ATU_CFG_SHIFT_MODE_ENABLE;
   Status = DwPcieProgOutboundAtu (DwPcie, &AtuCfg);
   if (Status != EFI_SUCCESS) {

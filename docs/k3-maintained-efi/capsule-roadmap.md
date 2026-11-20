@@ -14,6 +14,36 @@ that it needs fixing. This series does not certify that route or supply a signed
 capsule. The separate NVRAM FD in the current FDF is useful, but by itself does
 not establish correct erase bounds, authentication, recovery or update reporting.
 
+COM260 preflight provided a concrete example: its installed EFI image used an
+active variable FV at NOR 0x410000, while this build uses 0x700000. Installing
+the new FIT alone would overwrite the old store and strand its variables. The
+development test first validated the old authenticated store and empty FTW
+journal, copied it unchanged to the erased new location, verified a full NOR
+readback, and then replaced code. A release updater needs an explicit,
+versioned migration contract with power-loss and rollback tests. A fixed NVRAM
+offset protects subsequent releases only after that transition is complete.
+Board family and flash capacity alone do not identify an installed layout.
+
+COM260 testing also exposed a private memory-contract mismatch: its installed
+ESOS uses RPMI queues at 0x100800000, whereas the imported EFI firmware DTB
+describes 0x100e00000. SRST ceased to be advertised after that EFI update, and
+traced EFI cold resets return SBI_ENOTSUPP. An endpoint-matched control is
+prepared; hardware confirmation is pending. This is separate from the OS DTB
+ABI: FSBL, OpenSBI, controller firmware and EFI must agree on their internal
+memory layout and protocols. Qualify complete release combinations, check their
+embedded descriptions against one another, and reject unsupported installed
+combinations before writing. A board name or individually valid payload hashes
+cannot establish that compatibility. SpacemiT should own these release contracts;
+OS users should receive a supported update without managing internal DTBs.
+
+The endpoint-only control did not restore SRST. Binary and live-memory checks
+then proved a second mismatch: the reused Pico controller expects its identity
+and DTB table at addresses different from those populated by COM260's installed
+bootloader. Embedded-DTB checks are necessary but insufficient; the contract
+also includes compiled controller/bootloader addresses, heap bounds, and table
+format. A production bundle needs evidence that these components actually
+initialize and communicate, not merely that Linux can boot or reboot.
+
 ## Implementation stages and owners
 
 1. **SpacemiT: release identity and flash contract.** Assign documented model/

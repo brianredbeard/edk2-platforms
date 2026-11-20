@@ -268,11 +268,10 @@
   #   bit0 (0x01) = progress codes  -> prints "PROGRESS CODE: V... I..." on serial
   #   bit1 (0x02) = error codes     -> prints "ERROR: C...:V... I..." on serial
   #   bit2 (0x04) = debug codes     -> routes DEBUG() output through status code
-!if $(TARGET) == RELEASE
+  # Progress codes are pure noise on the serial console (one line per firmware
+  # event; ~50 lines per boot, interleaved with GRUB menu redraws) and consume
+  # the GRUB menu timeout at 115200 baud. Keep them off in DEBUG builds too.
   gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x02
-!else
-  gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x07
-!endif
 
   gSpacemitK3TokenSpaceGuid.PcdSpacemitMPMURegBase|0xd4050000
   gSpacemitK3TokenSpaceGuid.PcdSpacemitAPMURegBase|0xd4282800
@@ -686,6 +685,8 @@
 
 !if $(ACPI_ENABLE) == TRUE
   gEfiMdeModulePkgTokenSpaceGuid.PcdAcpiExposedTableVersions|0x20
+  # Required so K3AcpiNvsDxe can walk/patch the DSDT via the ACPI SDT protocol.
+  gEfiMdeModulePkgTokenSpaceGuid.PcdInstallAcpiSdtProtocol|TRUE
   # definition of X100
   gSpacemitK3TokenSpaceGuid.PcdX100HartCount|0x8
 
@@ -870,6 +871,11 @@
   MdeModulePkg/Universal/Acpi/AcpiPlatformDxe/AcpiPlatformDxe.inf
   # ACPI tables
   Platform/Spacemit/K3/AcpiTables/K3AcpiTables.inf
+  # Deterministic OS-visible device-block clock bring-up at ReadyToBoot
+  # (GMAC/PCIe/USB/TSEN): ACPI leaves clock control to firmware, so every
+  # OS-driven block must be clocked and out of reset at handoff even if BDS
+  # never connected it.
+  Silicon/Spacemit/K3/Drivers/AcpiClockInitDxe/K3AcpiClockInitDxe.inf
 !elseif $(K3_OS_DTB_ENABLE) == FALSE
   Silicon/RISC-V/ProcessorPkg/Universal/FdtDxe/FdtDxe.inf {
     <LibraryClasses>
