@@ -1,0 +1,94 @@
+/** @file
+  Platform Communications Channel Table (PCCT) — DRAFT, type-3 extended PCC.
+
+  Describes the dedicated AML-only management channel (subspace 0) that backs the
+  ACPI power model (Power.asl) via a type-3, interrupt-completed PCC interface to
+  ESOS. See acpi-platform-management-architecture.md and pcc-resource-registry.md.
+
+  *** DRAFT / NON-PRODUCTION TRANSPORT VALUES ***
+  Per the committed freeze policy, the PCCT binary layout and all transport
+  details (shared-memory base, doorbell/ack registers, completion registers,
+  platform interrupt, nominal latency) are NOT frozen. They must be reviewed
+  against the exact RHEL 6.12 acpi_pcc.c/ACPICA path and the real K3/ESOS
+  transport before use. Every placeholder below is marked VERIFY.
+
+  This table is installed into the ACPI set but K3AcpiNvsDxe UNINSTALLS it unless
+  the ESOS PCC endpoint is verified (PcdK3PccEndpointPresent), so a draft/unbacked
+  channel is never published to a normal OS.
+
+  Copyright (c) 2026, SpacemiT Co., Ltd. All rights reserved.<BR>
+  SPDX-License-Identifier: BSD-2-Clause-Patent
+**/
+
+#include <Library/AcpiLib.h>
+#include <IndustryStandard/Acpi.h>
+#include "K3PlatformAcpi.h"
+
+// GAS helper: 32-bit SystemMemory register at Addr.
+#define GAS32(Addr)                       \
+  {                                       \
+    EFI_ACPI_6_6_SYSTEM_MEMORY,  /* Id */ \
+    32,                          /* Width */ \
+    0,                           /* Offset */ \
+    EFI_ACPI_6_6_DWORD,          /* AccessSize */ \
+    Addr                                   \
+  }
+
+// --- DRAFT transport placeholders (VERIFY all) -------------------------------
+#define K3_PCC_SHMEM_BASE     0x00000000FFFE0000ULL  // VERIFY: reserved AML PCC shared-mem (disjoint from RPMI)
+#define K3_PCC_SHMEM_LEN      0x100
+#define K3_PCC_DOORBELL       0xCAC91400             // VERIFY: dedicated K3 mailbox doorbell (NOT RPMI Mailbox3)
+#define K3_PCC_IRQ_ACK        0xCAC91410             // VERIFY: mailbox IRQ ack register
+#define K3_PCC_PLATFORM_IRQ   200                    // VERIFY: completion interrupt GSI (APLIC)
+#define K3_PCC_NOMINAL_LAT_US 1000                   // VERIFY: functional (Linux timeout = 500 x this)
+
+#pragma pack(1)
+typedef struct {
+  EFI_ACPI_6_6_PLATFORM_COMMUNICATION_CHANNEL_TABLE_HEADER    Header;
+  EFI_ACPI_6_6_PCCT_SUBSPACE_3_EXTENDED_PCC                   Subspace0;
+} K3_PCCT;
+#pragma pack()
+
+STATIC K3_PCCT  Pcct = {
+  {
+    ACPI_HEADER (
+      EFI_ACPI_6_6_PLATFORM_COMMUNICATIONS_CHANNEL_TABLE_SIGNATURE,
+      K3_PCCT,
+      EFI_ACPI_6_6_PLATFORM_COMMUNICATION_CHANNEL_TABLE_REVISION
+      ),
+    EFI_ACPI_6_6_PCCT_FLAGS_PLATFORM_INTERRUPT,    // Flags
+    0                                              // Reserved
+  },
+
+  // Subspace 0: type-3 extended, AML-only management channel.
+  {
+    EFI_ACPI_6_6_PCCT_SUBSPACE_TYPE_3_EXTENDED_PCC,                 // Type
+    sizeof (EFI_ACPI_6_6_PCCT_SUBSPACE_3_EXTENDED_PCC),            // Length
+    K3_PCC_PLATFORM_IRQ,                                            // PlatformInterrupt
+    0,                                                             // PlatformInterruptFlags (edge, active-high) VERIFY
+    0,                                                             // Reserved
+    K3_PCC_SHMEM_BASE,                                             // BaseAddress
+    K3_PCC_SHMEM_LEN,                                              // AddressLength (UINT32 for type-3)
+    GAS32 (K3_PCC_DOORBELL),                                        // DoorbellRegister
+    0x0,                                                           // DoorbellPreserve
+    0x1,                                                           // DoorbellWrite
+    K3_PCC_NOMINAL_LAT_US,                                          // NominalLatency
+    0,                                                             // MaximumPeriodicAccessRate
+    0,                                                             // MinimumRequestTurnaroundTime
+    GAS32 (K3_PCC_IRQ_ACK),                                         // PlatformInterruptAckRegister
+    0x0,                                                           // PlatformInterruptAckPreserve
+    0x1,                                                           // PlatformInterruptAckSet
+    { 0, 0, 0, 0, 0, 0, 0, 0 },                                     // Reserved1[8]
+    GAS32 (K3_PCC_SHMEM_BASE + 0x08),                              // CommandCompleteCheckRegister
+    0x1,                                                           // CommandCompleteCheckMask (bit0)
+    GAS32 (K3_PCC_SHMEM_BASE + 0x08),                              // CommandCompleteUpdateRegister
+    0xFFFFFFFFFFFFFFFEULL,                                         // CommandCompleteUpdatePreserve (~bit0)
+    0x0,                                                           // CommandCompleteUpdateSet
+    GAS32 (K3_PCC_SHMEM_BASE + 0x0C),                              // ErrorStatusRegister
+    0x4                                                            // ErrorStatusMask (bit2)
+  }
+};
+
+// Reference the table being generated to prevent the optimizer
+// from removing the data structure from the executable
+VOID *CONST  ReferenceAcpiTable = &Pcct;

@@ -1,0 +1,58 @@
+## @file
+#  K3 ACPI NVS populator: fills the ACPI NVS board-activation masks from the
+#  SKU-indexed PCDs and patches the DSDT PNVS region base (single-DSDT multi-SKU
+#  model).
+#
+#  Copyright (c) 2026, SpacemiT Co., Ltd. All rights reserved.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = K3AcpiNvsDxe
+  FILE_GUID                      = 2B7F1C0A-9E44-4C2E-9B3A-7E5D8C1A0F42
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = K3AcpiNvsDxeEntryPoint
+
+[Sources]
+  K3AcpiNvsDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  Platform/Spacemit/K3/K3Platform.dec
+  Silicon/Spacemit/K3/K3.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  UefiLib
+  MemoryAllocationLib
+  BaseMemoryLib
+  DebugLib
+  PcdLib
+
+[Protocols]
+  gEfiAcpiSdtProtocolGuid                 ## CONSUMES
+  gEfiAcpiTableProtocolGuid               ## CONSUMES
+
+[Guids]
+  gEfiEventReadyToBootGuid                ## CONSUMES ## Event
+
+[Pcd]
+  gSpacemitK3TokenSpaceGuid.PcdGmacUseMask           ## CONSUMES
+  gSpacemitK3TokenSpaceGuid.PcdUsbHostEnableMask     ## CONSUMES
+  gSpacemitK3TokenSpaceGuid.PcdUsbHostHsOnlyMask     ## CONSUMES
+  gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask    ## CONSUMES
+
+[FeaturePcd]
+  gSpacemitK3TokenSpaceGuid.PcdK3PccEndpointPresent  ## CONSUMES
+
+#
+# Depend on SKU selection being complete so LibPcdGetSku()/the masks are final.
+# (ReadyToBoot is well after this, but the depex keeps dispatch ordering clean.)
+#
+[Depex]
+  gEfiAcpiSdtProtocolGuid AND gSpacemitK3SkuSelectDoneProtocolGuid
