@@ -6,17 +6,70 @@
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
+/*
+ * _LPI states (Task 9 first cut). Encodings per the RISC-V FFH spec and
+ * the shipped suspend chain (see task9-hsm-suspend-audit-2026-11-20.md):
+ * the FFH register address is (1ULL << 60) | sbi_suspend_param, and the
+ * params are the platform non-retentive types the ESOS RPMI HSM service
+ * advertises from the rcpu DTB idle-states. The kernel's RISC-V LPI
+ * backend (acpi_cpu_init_idle) requires MORE THAN ONE flattened state,
+ * so the CPU and CLUSTER non-retentive states are both exposed; both use
+ * the identical proven mechanism (PMU vote + WFI + in-place resume; the
+ * cluster state additionally votes the cluster domain down). Latencies
+ * are the vendor DT values - replace with measured values before
+ * freezing (audit requirement). local-timer-stop applies to both; tick
+ * broadcast behavior must be verified on hardware (audit requirement).
+ */
+#define LPI_STATES              \
+  Name (_LPI, Package () {      \
+    0,                          /* MinResidency (level-wide, unused) */ \
+    0,                          /* WakeLatency (level-wide, unused) */ \
+    2,                          /* Count of state packages */ \
+    /* State 0: CPU non-retentive (sbi param 0x90000000) */ \
+    Package () {                \
+      950,                      /* MinResidency (us) */ \
+      500,                      /* WakeLatency (us) */ \
+      0,                        /* Flags */ \
+      0,                        /* ArchFlags */ \
+      0,                        /* ResidencyCounterFreq */ \
+      0,                        /* EnabledParentState */ \
+      ResourceTemplate () {     \
+        Register (FFixedHW, 64, 0, 0x1900000000000000, 4) \
+      },                        \
+      0,                        /* Residency Counter Address */ \
+      0,                        /* Usage Counter Address */ \
+      "CPU_NR"                  /* Name */ \
+    },                          \
+    /* State 1: CLUSTER non-retentive (sbi param 0x91000000) */ \
+    Package () {                \
+      2700,                     /* MinResidency (us) */ \
+      1100,                     /* WakeLatency (us) */ \
+      0,                        /* Flags */ \
+      0,                        /* ArchFlags */ \
+      0,                        /* ResidencyCounterFreq */ \
+      0,                        /* EnabledParentState */ \
+      ResourceTemplate () {     \
+        Register (FFixedHW, 64, 0, 0x1910000000000000, 4) \
+      },                        \
+      0,                        /* Residency Counter Address */ \
+      0,                        /* Usage Counter Address */ \
+      "CLUSTER_NR"              /* Name */ \
+    }                           \
+  })
+
 #ifndef CPPC_ENABLE
 #define CPU_DEVICE(CpuName, Uid)    \
   Device (CpuName) {                \
     Name (_HID, "ACPI0007")         \
     Name (_UID, Uid)                \
+    LPI_STATES                      \
   }
 #else
 #define CPU_DEVICE(CpuName, Uid)    \
   Device (CpuName) {                \
     Name (_HID, "ACPI0007")         \
     Name (_UID, Uid)                \
+    LPI_STATES                      \
     Name (_CPC,                     \
       Package () {                  \
         23,                         \
