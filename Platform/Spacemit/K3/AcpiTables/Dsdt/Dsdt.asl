@@ -42,6 +42,13 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       CreateDWordField (Arg3, 0, CDW1)   /* Query/Status */
       CreateDWordField (Arg3, 4, CDW2)   /* Support */
 
+      /* Revision must be 1 */
+      If (LNotEqual (Arg1, 1))
+      {
+        Or (CDW1, 0x08, CDW1)   /* _OSC_REVISION_ERROR */
+        Return (Arg3)
+      }
+
       /* Platform-wide capabilities UUID */
       If (LEqual (Arg0, ToUUID ("0811B06E-4A27-44F9-8D60-3CBBC22E7B48")))
       {
@@ -52,8 +59,8 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
         Return (Arg3)
       }
 
-      /* Unknown UUID: unsupported */
-      Store (1, CDW1)   /* _OSC_FAILURE */
+      /* Unknown UUID */
+      Or (CDW1, 0x04, CDW1)   /* _OSC_UNRECOGNIZED_UUID (0x04, NOT the query bit) */
       And (CDW2, 0, CDW2)
       Return (Arg3)
     }
@@ -251,16 +258,16 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
           CreateDWordField (Arg3, 8, CDW3)
 
           /*
-           * Firmware-supported mask. The platform supports only the
-           * PCIeCapability bit (bit 4: extended config space via MCFG);
-           * hot-plug, SHPC, PME and AER have no firmware backing (no
-           * _PRT, no GPE wiring, no AER handler). SUPP must report what
-           * THIS firmware supports - echoing the OS request (SUPP=CDW2)
-           * misrepresents platform support - and CTRL may only clear
-           * bits the firmware actually granted.
+           * Support (CDW2) and Control (CDW3) are DIFFERENT bitfields
+           * with different bit assignments - they must not be mixed.
+           * Support: MSI (0x10) is provided (the APLIC-MSI path and the
+           * IMSIC MSI domain are live). Control: only the PCIe
+           * Capability bit (0x10 in CDW3: extended config via MCFG) is
+           * granted; hot-plug, SHPC, PME, AER, LTR, DPC have no firmware
+           * backing (no _PRT, no GPE wiring, no AER handler).
            */
           SUPP = CDW2 & 0x10
-          CTRL = CDW3 & SUPP
+          CTRL = CDW3 & 0x10
 
           If (Arg1 != 1) { CDW1 |= 0x08 } /* unknown revision */
           If (CDW3 != CTRL) { CDW1 |= 0x10 } /* capabilities lost */

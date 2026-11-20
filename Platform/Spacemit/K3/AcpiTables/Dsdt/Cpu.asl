@@ -15,22 +15,50 @@
  * backend (acpi_cpu_init_idle) requires MORE THAN ONE flattened state,
  * so the CPU and CLUSTER non-retentive states are both exposed; both use
  * the identical proven mechanism (PMU vote + WFI + in-place resume; the
- * cluster state additionally votes the cluster domain down). Latencies
+ * cluster state would additionally vote the cluster domain down;
+ * CLUSTER_NR is deferred pending cluster qualification). Latencies
  * are the vendor DT values - replace with measured values before
- * freezing (audit requirement). local-timer-stop applies to both; tick
- * broadcast behavior must be verified on hardware (audit requirement).
+ * freezing (audit requirement). CPU_NR sets ArchFlags bit 0 (local
+ * timer stops) per the DT idle-state's local-timer-stop; the timer-stop
+ * wake mechanism must be validated on hardware, not assumed from boot
+ * success (audit requirement).
+ */
+/*
+ * _LPI layout note: the FIRST flattened state is index 0, and
+ * __CPU_PM_CPU_IDLE_ENTER treats index 0 specially: cpu_do_idle()
+ * (architectural WFI) WITHOUT calling the SBI suspend entry. A state
+ * placed at index 0 therefore never suspends - so an explicit shallow
+ * WFI state occupies index 0, and CPU_NR (the actual suspend state)
+ * is index 1. Cluster non-retentive is deliberately DEFERRED until
+ * the cluster state is qualified (audit requirement: validate wake
+ * mechanism, not just boot success).
  */
 #define LPI_STATES              \
   Name (_LPI, Package () {      \
     0,                          /* MinResidency (level-wide, unused) */ \
     0,                          /* WakeLatency (level-wide, unused) */ \
     2,                          /* Count of state packages */ \
-    /* State 0: CPU non-retentive (sbi param 0x90000000) */ \
+    /* State 0: shallow WFI (index-0 special path: cpu_do_idle) */ \
+    Package () {                \
+      1,                        /* MinResidency (us) */ \
+      1,                        /* WakeLatency (us) */ \
+      1,                        /* Flags: BIT(0) enabled */ \
+      0,                        /* ArchFlags (WFI: timer runs) */ \
+      0,                        /* ResidencyCounterFreq */ \
+      0,                        /* EnabledParentState */ \
+      ResourceTemplate () {     \
+        Register (FFixedHW, 64, 0, 0, 4) \
+      },                        \
+      0,                        /* Residency Counter Address */ \
+      0,                        /* Usage Counter Address */ \
+      "WFI"                     /* Name */ \
+    },                          \
+    /* State 1: CPU non-retentive (sbi param 0x90000000) */ \
     Package () {                \
       950,                      /* MinResidency (us) */ \
       500,                      /* WakeLatency (us) */ \
       1,                        /* Flags: BIT(0) enabled */ \
-      0,                        /* ArchFlags */ \
+      1,                        /* ArchFlags: BIT(0) = local timer stops */ \
       0,                        /* ResidencyCounterFreq */ \
       0,                        /* EnabledParentState */ \
       ResourceTemplate () {     \
@@ -39,21 +67,6 @@
       0,                        /* Residency Counter Address */ \
       0,                        /* Usage Counter Address */ \
       "CPU_NR"                  /* Name */ \
-    },                          \
-    /* State 1: CLUSTER non-retentive (sbi param 0x91000000) */ \
-    Package () {                \
-      2700,                     /* MinResidency (us) */ \
-      1100,                     /* WakeLatency (us) */ \
-      1,                        /* Flags: BIT(0) enabled */ \
-      0,                        /* ArchFlags */ \
-      0,                        /* ResidencyCounterFreq */ \
-      0,                        /* EnabledParentState */ \
-      ResourceTemplate () {     \
-        Register (FFixedHW, 64, 0, 0x1000000091000000, 4) \
-      },                        \
-      0,                        /* Residency Counter Address */ \
-      0,                        /* Usage Counter Address */ \
-      "CLUSTER_NR"              /* Name */ \
     }                           \
   })
 
