@@ -13,10 +13,10 @@
  * params are the platform non-retentive types the ESOS RPMI HSM service
  * advertises from the rcpu DTB idle-states. The kernel's RISC-V LPI
  * backend (acpi_cpu_init_idle) requires MORE THAN ONE flattened state,
- * so the CPU and CLUSTER non-retentive states are both exposed; both use
- * the identical proven mechanism (PMU vote + WFI + in-place resume; the
- * cluster state would additionally vote the cluster domain down;
- * CLUSTER_NR is deferred pending cluster qualification). Latencies
+ * so an explicit shallow WFI state is exposed alongside CPU_NR. Both use
+ * the proven mechanism (PMU vote + WFI + in-place resume). CLUSTER_NR is
+ * NOT exposed: deferred pending cluster wake-mechanism qualification.
+ * Latencies
  * are the vendor DT values - replace with measured values before
  * freezing (audit requirement). CPU_NR sets ArchFlags bit 0 (local
  * timer stops) per the DT idle-state's local-timer-stop; the timer-stop
@@ -53,20 +53,26 @@
       0,                        /* Usage Counter Address */ \
       "WFI"                     /* Name */ \
     },                          \
-    /* State 1: CPU non-retentive (sbi param 0x90000000) */ \
+    /* State 1: SBI WFI (retentive, suspend param 0, timer runs).
+     * SAFE first cut: proves the _LPI -> cpuidle -> SBI HSM suspend
+     * pipeline end-to-end without hang risk. The non-retentive CPU_NR
+     * (0x90000000) hangs the boot: the local timer stops and 6.12
+     * RISC-V has no arch_get_idle_state_flags override to trigger
+     * tick broadcast. Replace with CPU_NR once the kernel-side
+     * timer-stop support lands. */ \
     Package () {                \
       950,                      /* MinResidency (us) */ \
       500,                      /* WakeLatency (us) */ \
       1,                        /* Flags: BIT(0) enabled */ \
-      1,                        /* ArchFlags: BIT(0) = local timer stops */ \
+      0,                        /* ArchFlags (retentive: timer runs) */ \
       0,                        /* ResidencyCounterFreq */ \
       0,                        /* EnabledParentState */ \
       ResourceTemplate () {     \
-        Register (FFixedHW, 64, 0, 0x1000000090000000, 4) \
+        Register (FFixedHW, 64, 0, 0x1000000000000000, 4) \
       },                        \
       0,                        /* Residency Counter Address */ \
       0,                        /* Usage Counter Address */ \
-      "CPU_NR"                  /* Name */ \
+      "SBI_WFI"                 /* Name */ \
     }                           \
   })
 
