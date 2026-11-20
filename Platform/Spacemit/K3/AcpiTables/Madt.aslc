@@ -23,9 +23,9 @@ typedef struct {
 STATIC EFI_ACPI_MULTIPLE_APIC_DESCRIPTION_TABLE  Madt = {
   {
     ACPI_HEADER (
-      EFI_ACPI_6_5_MULTIPLE_APIC_DESCRIPTION_TABLE_SIGNATURE,
+      EFI_ACPI_6_6_MULTIPLE_APIC_DESCRIPTION_TABLE_SIGNATURE,
       EFI_ACPI_MULTIPLE_APIC_DESCRIPTION_TABLE,
-      EFI_ACPI_6_5_MULTIPLE_APIC_DESCRIPTION_TABLE_REVISION
+      EFI_ACPI_6_6_MULTIPLE_APIC_DESCRIPTION_TABLE_REVISION
       ),
     //
     // MADT specific fields
@@ -115,15 +115,25 @@ STATIC EFI_ACPI_MULTIPLE_APIC_DESCRIPTION_TABLE  Madt = {
   // 3. APLIC Structure
   EFI_ACPI_6_6_APLIC_STRUCTURE_INIT (
     0x0,               // AplicId
-    { 0x00000000 },    // HardwareId
-    0,                 // NumIdcs
-    511,               // NumExtIntSources
+    // ACPI 6.6 Table 5.59: HardwareId must be a valid ACPI ID "NNNN####".
+    // SPMT0001 = Spacemit K3 supervisor APLIC.
+    ACPI_HWID_LIST_8 ('S', 'P', 'M', 'T', '0', '0', '0', '1'),
+    0,                 // NumIdcs (wired-to-MSI bridge: no IDCs)
+    512,               // NumExtIntSources (matches riscv,num-sources in K3.dtsi)
     0,                 // GsiBase
-    0x00558500000,     // AplicAddress
-    0x10000            // AplicSize
+    0xe0804000,        // AplicAddress (supervisor APLIC; matches saplic in K3.dtsi and DSDT IC00)
+    0x4000             // AplicSize
     ),
 };
 
+// The RINTC array is sized by PcdX100HartCount but initialized with explicit
+// entries; a mismatch would silently emit zero-filled (Type 0, Length 0)
+// subtables and corrupt every MADT parser. UID sequence must also stay dense
+// from 0 so RINTC _UIDs match the DSDT ACPI0007 devices.
+STATIC_ASSERT (
+  FixedPcdGet32 (PcdX100HartCount) == 8,
+  "Madt.aslc carries 8 explicit RINTC initializers; update them with the PCD"
+  );
 // Reference the table being generated to prevent the optimizer
 // from removing the data structure from the executable
 VOID *CONST  ReferenceAcpiTable = &Madt;

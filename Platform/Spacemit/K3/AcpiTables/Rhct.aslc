@@ -197,6 +197,12 @@ STATIC EFI_ACPI_RISCV_HART_CAPABILITIES_TABLE  Rhct = {
   }
 };
 
+// Hart-info array is sized by PcdX100HartCount but initialized with explicit
+// CPU0-7 entries; a mismatch would silently emit zero-filled nodes.
+STATIC_ASSERT (
+  FixedPcdGet32 (PcdX100HartCount) == 8,
+  "Rhct.aslc carries 8 explicit hart-info initializers; update them with the PCD"
+  );
 // Reference the table being generated to prevent the optimizer
 // from removing the data structure from the executable
 VOID *CONST  ReferenceAcpiTable = &Rhct;
