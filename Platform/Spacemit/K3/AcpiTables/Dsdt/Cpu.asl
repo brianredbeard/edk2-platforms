@@ -63,7 +63,7 @@
   Name (_LPI, Package () {      \
     0,                          /* MinResidency (level-wide, unused) */ \
     0,                          /* WakeLatency (level-wide, unused) */ \
-    2,                          /* Count of state packages */ \
+    3,                          /* Count of state packages */ \
     /* State 0: shallow WFI (index-0 special path: cpu_do_idle) */ \
     Package () {                \
       1,                        /* MinResidency (us) */ \
@@ -96,6 +96,30 @@
       0,                        /* Residency Counter Address */ \
       0,                        /* Usage Counter Address */ \
       "SBI_WFI"                 /* Name */ \
+    },                          \
+    /* State 2: cluster-retentive (0x11000000) — the RPMI-routed
+     * P1 path. The ESOS ownership gate drives the decision:
+     * with Linux running, the gate DENIES (the provider holds
+     * the X100 clusters) and the driver falls back to the
+     * shallower states; under genuine whole-cluster quiescence
+     * the gate grants and the sequencer coordinates M2. No
+     * local-timer-stop (ArchFlags 0): the timer runs and is a
+     * wake source. Latencies: placeholder dtb values until
+     * measured. Qualified end-to-end (deny path) on
+     * 2026-11-21; the grant path requires whole-cluster idle. */ \
+    Package () {                \
+      2700,                     /* MinResidency (us) */ \
+      1100,                     /* WakeLatency (us) */ \
+      1,                        /* Flags: BIT(0) enabled */ \
+      0,                        /* ArchFlags (retentive: timer runs) */ \
+      0,                        /* ResidencyCounterFreq */ \
+      0,                        /* EnabledParentState */ \
+      ResourceTemplate () {     \
+        Register (FFixedHW, 64, 0, 0x1100000000000000, 4) \
+      },                        \
+      0,                        /* Residency Counter Address */ \
+      0,                        /* Usage Counter Address */ \
+      "SBI_CRET"                /* Name */ \
     }                           \
   })
 
