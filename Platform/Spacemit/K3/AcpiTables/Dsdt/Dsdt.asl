@@ -339,13 +339,19 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
         Return (Arg3)
       }
 
-      // Reserve the ECAM region declared in MCFG.
+      /*
+       * Reserve the ECAM region declared in MCFG. This is CONSUMED
+       * register space (the root complex's config window), not an
+       * allocation window produced for children — ResourceConsumer
+       * per the audit (PCI-03); the root bridge's bus/BAR windows
+       * remain the producers.
+       */
       Device (RES0)
       {
         Name (_HID, "PNP0C02")
         Name (_CRS, ResourceTemplate () {
           QWordMemory (
-            ResourceProducer, PosDecode, MinFixed, MaxFixed,
+            ResourceConsumer, PosDecode, MinFixed, MaxFixed,
             NonCacheable, ReadWrite,
             0x0,                   // AddressGranularity
             0x0000001100000000,    // AddressMinimum (ECAM)
@@ -360,16 +366,14 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       Device (DBI0)
       {
         /*
-     * BORROWED ACPI ID: "AMZN0001" is Amazon Annapurna Labs PCIe DBI
-     * (acpi_get_rc_resources in pcie-al.c). The K3 DBI window is
-     * register-space only and nothing on this kernel binds it, but the
-     * ID is not SpacemiT's and could bind pcie-al on other kernels.
-     * Proper fix: PRP0001 + a documented compatible, or drop _HID for a
-     * pure PNP0C02-style reservation; requires a qualified boot.
-     * Linux-only consideration.
+     * RESERVATION-ONLY identity (audit PCI-04): the K3 DBI window is
+     * register space with no functional driver on any kernel we run.
+     * The borrowed Amazon Annapurna "AMZN0001" HID is dropped — a
+     * PNP0C02 reservation cannot attract pcie-al behavior. If a
+     * driver for this window is ever needed, ship it under a
+     * SpacemiT ID with a documented binding.
      */
-    Name (_HID, "AMZN0001")
-        Name (_CID, "PNP0C02")
+    Name (_HID, "PNP0C02")
         Name (_UID, 0)
         Name (_CRS, ResourceTemplate () {
           QWordMemory (
