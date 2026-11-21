@@ -44,6 +44,36 @@ SMBIOS_MISC_TABLE_EXTERNS (
   MiscBootInformation,
   MiscBootInformation
   )
+SMBIOS_MISC_TABLE_EXTERNS (
+  SMBIOS_TABLE_TYPE4,
+  MiscProcessorInformation,
+  MiscProcessorInformation
+  )
+SMBIOS_MISC_TABLE_EXTERNS (
+  SMBIOS_TABLE_TYPE7,
+  MiscCacheInformation,
+  MiscCacheInformation
+  )
+SMBIOS_MISC_TABLE_EXTERNS (
+  SMBIOS_TABLE_TYPE16,
+  MiscPhysicalMemoryArray,
+  MiscPhysicalMemoryArray
+  )
+SMBIOS_MISC_TABLE_EXTERNS (
+  SMBIOS_TABLE_TYPE17,
+  MiscMemoryDevice,
+  MiscMemoryDevice
+  )
+SMBIOS_MISC_TABLE_EXTERNS (
+  SMBIOS_TABLE_TYPE19,
+  MiscMemoryArrayMappedAddress,
+  MiscMemoryArrayMappedAddress
+  )
+SMBIOS_MISC_TABLE_EXTERNS (
+  SMBIOS_TABLE_TYPE44,
+  MiscProcessorAdditionalInformation,
+  MiscProcessorAdditionalInformation
+  )
 
 SMBIOS_MISC_DATA_TABLE mSmbiosMiscDataTable[] = {
   // Type0
@@ -75,6 +105,36 @@ SMBIOS_MISC_DATA_TABLE mSmbiosMiscDataTable[] = {
   SMBIOS_MISC_TABLE_ENTRY_DATA_AND_FUNCTION (
     MiscBootInformation,
     MiscBootInformation
+    ),
+  // Type4 (Processor Information, one per hart)
+  SMBIOS_MISC_TABLE_ENTRY_DATA_AND_FUNCTION (
+    MiscProcessorInformation,
+    MiscProcessorInformation
+    ),
+  // Type7 (Cache Information: 8x L1I, 8x L1D, 2x L2)
+  SMBIOS_MISC_TABLE_ENTRY_DATA_AND_FUNCTION (
+    MiscCacheInformation,
+    MiscCacheInformation
+    ),
+  // Type16 (Physical Memory Array)
+  SMBIOS_MISC_TABLE_ENTRY_DATA_AND_FUNCTION (
+    MiscPhysicalMemoryArray,
+    MiscPhysicalMemoryArray
+    ),
+  // Type17 (Memory Device)
+  SMBIOS_MISC_TABLE_ENTRY_DATA_AND_FUNCTION (
+    MiscMemoryDevice,
+    MiscMemoryDevice
+    ),
+  // Type19 (Memory Array Mapped Address)
+  SMBIOS_MISC_TABLE_ENTRY_DATA_AND_FUNCTION (
+    MiscMemoryArrayMappedAddress,
+    MiscMemoryArrayMappedAddress
+    ),
+  // Type44 (Processor Additional Information, one per hart)
+  SMBIOS_MISC_TABLE_ENTRY_DATA_AND_FUNCTION (
+    MiscProcessorAdditionalInformation,
+    MiscProcessorAdditionalInformation
     ),
 };
 
