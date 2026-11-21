@@ -415,7 +415,7 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       Device (EPR0)
       {
         Name (_HID, "PRP0001")
-        Name (_UID, 0)
+        Name (_UID, 1)            // PRP0001 (HID,UID) pairs must be unique namespace-wide (fwts HardwareIDNotUnique; EC0 keeps 0)
         Name (_CRS, ResourceTemplate ()
         {
           I2cSerialBus (0x50, ControllerInitiated, 100000,
@@ -499,7 +499,7 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
         Device (PWM0)
         {
           Name (_HID, "PRP0001")
-          Name (_UID, 0)
+          Name (_UID, 2)            // distinct from EC0 and EPR0 (PRP0001 uniqueness)
           Name (_DSD, Package () {
             ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
             Package () {

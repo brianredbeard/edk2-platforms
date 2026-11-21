@@ -75,8 +75,12 @@
       ResourceTemplate () {     \
         Register (FFixedHW, 64, 0, 0, 4) \
       },                        \
-      0,                        /* Residency Counter Address */ \
-      0,                        /* Usage Counter Address */ \
+      ResourceTemplate () {     \
+        Register (SystemMemory, 0, 0, 0, 0) \
+      },                        \
+      ResourceTemplate () {     \
+        Register (SystemMemory, 0, 0, 0, 0) \
+      },                        \
       "WFI"                     /* Name */ \
     },                          \
     /* State 1: SBI retentive default (type 0) — hardware-qualified
@@ -93,8 +97,12 @@
       ResourceTemplate () {     \
         Register (FFixedHW, 64, 0, 0x1000000000000000, 4) \
       },                        \
-      0,                        /* Residency Counter Address */ \
-      0,                        /* Usage Counter Address */ \
+      ResourceTemplate () {     \
+        Register (SystemMemory, 0, 0, 0, 0) \
+      },                        \
+      ResourceTemplate () {     \
+        Register (SystemMemory, 0, 0, 0, 0) \
+      },                        \
       "SBI_WFI"                 /* Name */ \
     },                          \
     /* State 2: cluster-retentive (0x11000000) — the RPMI-routed
@@ -117,8 +125,12 @@
       ResourceTemplate () {     \
         Register (FFixedHW, 64, 0, 0x1000000011000000, 4) \
       },                        \
-      0,                        /* Residency Counter Address */ \
-      0,                        /* Usage Counter Address */ \
+      ResourceTemplate () {     \
+        Register (SystemMemory, 0, 0, 0, 0) \
+      },                        \
+      ResourceTemplate () {     \
+        Register (SystemMemory, 0, 0, 0, 0) \
+      },                        \
       "SBI_CRET"                /* Name */ \
     }                           \
   })
