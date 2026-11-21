@@ -46,7 +46,7 @@ SMBIOS_MISC_TABLE_DATA (SMBIOS_TABLE_TYPE17, MiscMemoryDevice) = {
   0,                                                      // DeviceSet
   1,                                                      // DeviceLocator
   2,                                                      // BankLocator
-  0x1A,                                                   // MemoryType: LPDDR4 (patched at install)
+  0x23,                                                   // MemoryType: LPDDR5
   { 0 },                                                  // TypeDetail
   0,                                                      // Speed (set at install)
   0,                                                      // Manufacturer
