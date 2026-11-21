@@ -901,6 +901,8 @@
   # BDS connect (DwEqosDxe, K3PcieHostBridgeLib, UsbHcdInitDxe); see the
   # mBringup[] table in the driver.
   Silicon/Spacemit/K3/Drivers/AcpiClockInitDxe/K3AcpiClockInitDxe.inf
+  # Boot-time BRS conformance self-test (loud, non-fatal)
+  Silicon/Spacemit/K3/Drivers/BrsCheckDxe/K3BrsCheckDxe.inf
 !elseif $(K3_OS_DTB_ENABLE) == FALSE
   Silicon/RISC-V/ProcessorPkg/Universal/FdtDxe/FdtDxe.inf {
     <LibraryClasses>

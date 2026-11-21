@@ -1,0 +1,36 @@
+## @file
+#  K3BrsCheckDxe — boot-time BRS conformance self-test.
+#
+#  Copyright (c) 2026, SpacemiT Co., Ltd. All rights reserved.<BR>
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = K3BrsCheckDxe
+  FILE_GUID                      = 6B7A3C92-5D41-4E8F-9A02-1C3D5E7F9B01
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = K3BrsCheckDxeEntryPoint
+
+[Sources]
+  K3BrsCheckDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+
+[Protocols]
+  gEfiSmbiosProtocolGuid
+
+[Depex]
+  gEfiSmbiosProtocolGuid

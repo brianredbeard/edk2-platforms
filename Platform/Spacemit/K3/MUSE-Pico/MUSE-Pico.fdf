@@ -223,6 +223,7 @@ INF  MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
 INF  MdeModulePkg/Universal/Acpi/AcpiPlatformDxe/AcpiPlatformDxe.inf
 INF  RuleOverride = ACPITABLE Platform/Spacemit/K3/AcpiTables/K3AcpiTables.inf
 INF  Silicon/Spacemit/K3/Drivers/AcpiClockInitDxe/K3AcpiClockInitDxe.inf
+INF  Silicon/Spacemit/K3/Drivers/BrsCheckDxe/K3BrsCheckDxe.inf
 
 !elseif $(K3_OS_DTB_ENABLE) == FALSE
 INF  Silicon/RISC-V/ProcessorPkg/Universal/FdtDxe/FdtDxe.inf
