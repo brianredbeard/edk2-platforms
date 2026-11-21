@@ -90,7 +90,10 @@ SMBIOS_MISC_TABLE_FUNCTION (MiscProcessorInformation) {
     // allocation order makes the lookup robust).
     //
 
-    StrStart = (CHAR8 *)((UINT8 *)SmbiosRecord + sizeof (SMBIOS_TABLE_TYPE4));
+    /* strings follow the FORMATTED area (Hdr.Length), which for
+     * SMBIOS 3.7 Type4 is 0x32 — not sizeof(), which includes
+     * the later optional fields */
+    StrStart = (CHAR8 *)((UINT8 *)SmbiosRecord + SmbiosRecord->Hdr.Length);
     AsciiSPrint (StrStart, 16, "CPU%u", Info.HartId);
     StrStart += AsciiStrSize (StrStart);
     AsciiSPrint (StrStart, 9, "SpacemiT");
