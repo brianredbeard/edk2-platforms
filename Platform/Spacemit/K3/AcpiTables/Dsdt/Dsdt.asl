@@ -162,6 +162,46 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       })
     }
 
+    Device (UFS0)
+    {
+      /*
+       * SpacemiT K3 UFS host controller (Task 7). PRP0001 matches the
+       * ufs-spacemit driver by compatible; the driver's ACPI path
+       * (0001-ufs-spacemit-ACPI-platform-data-path) reads these _DSD
+       * properties instead of the DT bindings:
+       *   lanes-per-direction     - 2 (the DT value)
+       *   spacemit,apmu-ufs-reg   - absolute APMU UFS clk/res control
+       *                             register (DT expresses this via the
+       *                             syscon_apmu reset phandle;
+       *                             RESET_APMU_UFS_ACLK = bit 0)
+       * The clocks are NOT described here: the RPMI clock service
+       * already serves ufs_aclk (491.52 MHz) / ufs_refclk as named
+       * clkdev clocks, and the driver's ACPI path looks them up by
+       * name. The OPP table (491.52 MHz / 19.2 MHz) is likewise not
+       * needed: clk_get_rate() on the real clocks provides the truth.
+       */
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x41)
+      Name (_CCA, 0)
+      Name (_CRS, ResourceTemplate ()
+      {
+        QWordMemory (
+          ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+          NonCacheable, ReadWrite,
+          0x0, 0xC0E00000, 0xC0E3FFFF, 0x0, 0x40000
+        )
+        Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) { 135 }
+      })
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "spacemit,k3-ufshc" },
+          Package () { "lanes-per-direction", 2 },
+          Package () { "spacemit,apmu-ufs-reg", 0xD4282A68 }
+        }
+      })
+    }
+
     Device (USB2)
     {
       /*
