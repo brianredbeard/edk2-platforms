@@ -1145,18 +1145,54 @@ FlashFvbVirtualNotifyEvent (
   FLASH_DESCRIPTION  *FlashDevices;
   UINT32             I, FlashDeviceCount = 0;
 
+  /*
+   * Convert ONLY genuine runtime pointers. DeviceBaseAddress /
+   * RegionBaseAddress are MMIO constants captured at init —
+   * converting them replaces the flash addresses with virtual
+   * garbage after SetVirtualAddressMap (the audit's
+   * scalar-as-pointer conversion defect). They must remain
+   * physical.
+   */
+  EFI_STATUS  Status;
+
   FlashPlatformGetDevices (&FlashDevices, &FlashDeviceCount);
 
   for (I = 0; I < FlashDeviceCount; I++) {
-    EfiConvertPointer (0x0, (VOID **)&mFlashInstances[I]->DeviceBaseAddress);
-    EfiConvertPointer (0x0, (VOID **)&mFlashInstances[I]->RegionBaseAddress);
-    EfiConvertPointer (0x0, (VOID **)&mFlashInstances[I]);
+    Status = EfiConvertPointer (0x0, (VOID **)&mFlashInstances[I]);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((
+        DEBUG_ERROR,
+        "[%a]:[%dL] ConvertPointer(instance %u) failed: %r\n",
+        __FUNCTION__,
+        __LINE__,
+        I,
+        Status
+        ));
+    }
   }
 
-  EfiConvertPointer (0x0, (VOID **)&mFlash->Read);
-  EfiConvertPointer (0x0, (VOID **)&mFlash->Write);
-  EfiConvertPointer (0x0, (VOID **)&mFlash->Erase);
-  EfiConvertPointer (0x0, (VOID **)&mFlash);
+  Status = EfiConvertPointer (0x0, (VOID **)&mFlashInstances);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "[%a]:[%dL] ConvertPointer(table) failed: %r\n", __FUNCTION__, __LINE__, Status));
+  }
+
+  /*
+   * mFlash's Read/Write/Erase are protocol function pointers —
+   * convert mFlash itself (the pointer to the protocol struct);
+   * the members follow the struct's own address, so converting
+   * the members AGAIN after converting mFlash is double work
+   * and (for a struct at a new address) reads through the OLD
+   * pointer first — order matters: convert mFlash, then the
+   * members via the NEW mFlash.
+   */
+  Status = EfiConvertPointer (0x0, (VOID **)&mFlash);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "[%a]:[%dL] ConvertPointer(mFlash) failed: %r\n", __FUNCTION__, __LINE__, Status));
+  } else {
+    EfiConvertPointer (0x0, (VOID **)&mFlash->Read);
+    EfiConvertPointer (0x0, (VOID **)&mFlash->Write);
+    EfiConvertPointer (0x0, (VOID **)&mFlash->Erase);
+  }
 
   return;
 }
