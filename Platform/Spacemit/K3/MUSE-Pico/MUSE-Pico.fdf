@@ -342,7 +342,7 @@ INF  ShellPkg/Application/Shell/Shell.inf
 INF  ShellPkg/DynamicCommand/DpDynamicCommand/DpDynamicCommand.inf
 !endif
 
-INF  MdeModulePkg/Application/UiApp/UiApp.inf
+INF  Silicon/Spacemit/Override/MdeModulePkg/Application/UiApp/UiApp.inf
 
 ################################################################################
 [FV.FVMAIN_COMPACT]

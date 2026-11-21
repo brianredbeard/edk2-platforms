@@ -870,8 +870,10 @@
   }
 !endif
 
-  # UiApp
-  MdeModulePkg/Application/UiApp/UiApp.inf {
+  # UiApp — the Spacemit override copy (PACKAGES_PATH resolves the
+  # SDK copy first; the override needs the explicit path, like
+  # NonDiscoverablePciDeviceDxe below)
+  Silicon/Spacemit/Override/MdeModulePkg/Application/UiApp/UiApp.inf {
     <LibraryClasses>
       NULL|Silicon/Spacemit/Library/PlatformUiLib/PlatformManagerUiLib.inf
       NULL|MdeModulePkg/Library/DeviceManagerUiLib/DeviceManagerUiLib.inf
