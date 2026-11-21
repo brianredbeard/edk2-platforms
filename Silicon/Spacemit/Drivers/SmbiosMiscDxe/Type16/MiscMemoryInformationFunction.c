@@ -36,7 +36,7 @@ SMBIOS_MISC_TABLE_FUNCTION (MiscPhysicalMemoryArray) {
 
   (VOID)CopyMem (SmbiosRecord, InputData, sizeof (SMBIOS_TABLE_TYPE16));
   SmbiosRecord->Hdr.Length               = sizeof (SMBIOS_TABLE_TYPE16);
-  SmbiosRecord->MaximumCapacity           = 0xFFFFFFFF;   // use extended
+  SmbiosRecord->MaximumCapacity           = 0x80000000;   // spec marker: extended capacity in use
   SmbiosRecord->ExtendedMaximumCapacity   = 16777216;     // KB = 16 GiB
   SmbiosRecord->NumberOfMemoryDevices     = 1;
 
@@ -96,6 +96,10 @@ SMBIOS_MISC_TABLE_FUNCTION (MiscMemoryDevice) {
   SmbiosRecord->MemoryType   = 0x23;                       // LPDDR5 (SMBIOS 3.3.0+ enum 0x23)
   SmbiosRecord->Speed        = 6400;                       // MT/s (datasheet: LPDDR5 6400 Mbps)
   SmbiosRecord->ConfiguredMemoryClockSpeed = 6400;
+
+  /* MemoryTechnology (SMBIOS 2.8+): 0x03 = DRAM. fwts range-checks
+   * 0x01..0x08 when the structure reaches 0x4C. */
+  SmbiosRecord->MemoryTechnology = 0x03;
 
   SmbiosRecord->DeviceLocator = 1;
   SmbiosRecord->BankLocator   = 2;

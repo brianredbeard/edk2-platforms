@@ -59,7 +59,9 @@ SMBIOS_MISC_TABLE_FUNCTION (MiscProcessorInformation) {
 
     (VOID)CopyMem (SmbiosRecord, InputData, sizeof (SMBIOS_TABLE_TYPE4));
 
-    SmbiosRecord->Hdr.Length = sizeof (SMBIOS_TABLE_TYPE4);
+    /* SMBIOS 3.7 Type4 formatted length: 0x32 (through ThreadCount2 at
+     * 3.0); sizeof() includes the 3.6/3.8 fields we leave zero. */
+    SmbiosRecord->Hdr.Length = 0x32;
     SmbiosRecord->Socket     = 1;      // "CPU<n>"
     SmbiosRecord->ProcessorManufacturer = 2; // "SpacemiT"
     SmbiosRecord->ProcessorVersion      = 3; // "X100"
