@@ -567,6 +567,27 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       })
     }
 
+
+    // ---- RPMI qualification test device (RQTS) ------------------------
+    // The device-power gate + CPPC qualification client: its own
+    // mboxes channel spec (the RCLK pattern) so the k3rpmiclient
+    // test driver owns a channel from boot instead of stealing
+    // clk-rpmi's. Rides the next DSDT-variable firmware cycle.
+    Device (RQTS)
+    {
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x75)
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "k3,rpmi-qual-test" },
+          Package () { "mboxes", Package () {
+            \_SB.MPXY, 8, 0
+          } }
+        }
+      })
+    }
+
     // ---- Thermal sensor (spacemit,k1-tsensor) ------------------------
     Device (TSEN)
     {
