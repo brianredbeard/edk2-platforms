@@ -91,7 +91,7 @@ SMBIOS_MISC_TABLE_FUNCTION (MiscMemoryDevice) {
   // MSB set = KB units).
   //
   SmbiosRecord->Size         = 0x7FFF;
-  SmbiosRecord->ExtendedSize = 16777216;                   // KB units (bit31 clear), 16 GiB
+  SmbiosRecord->ExtendedSize = 16384;                       // MB units (spec 3.2: value in MB, bit31 reserved-0), 16 GiB
   SmbiosRecord->FormFactor   = 0x0D;                       // SODIMM family per spec values
   SmbiosRecord->MemoryType   = 0x23;                       // LPDDR5 (SMBIOS 3.3.0+ enum 0x23)
   SmbiosRecord->Speed        = 6400;                       // MT/s (datasheet: LPDDR5 6400 Mbps)
