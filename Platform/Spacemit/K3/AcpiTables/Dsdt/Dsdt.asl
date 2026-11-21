@@ -42,7 +42,12 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       CreateDWordField (Arg3, 0, CDW1)   /* Query/Status */
       CreateDWordField (Arg3, 4, CDW2)   /* Support */
 
-      /* Revision must be 1 */
+      /*
+       * Revision must be 1. On revision error the capabilities
+       * buffer is returned UNCHANGED with only the status bit set
+       * (ACPI 6.5 6.2.11.2: the revision-error path neither masks
+       * nor clears the OS's requested capabilities).
+       */
       If (LNotEqual (Arg1, 1))
       {
         Or (CDW1, 0x08, CDW1)   /* _OSC_REVISION_ERROR */
@@ -59,9 +64,14 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
         Return (Arg3)
       }
 
-      /* Unknown UUID */
-      Or (CDW1, 0x04, CDW1)   /* _OSC_UNRECOGNIZED_UUID (0x04, NOT the query bit) */
-      And (CDW2, 0, CDW2)
+      /*
+       * Unknown UUID: set the status bit and return the
+       * capabilities buffer UNCHANGED (ACPI 6.5 6.2.11.3 —
+       * clearing the OS's requested capabilities here makes
+       * the OS believe the platform rejected them all, which
+       * disables features it could have kept).
+       */
+      Or (CDW1, 0x04, CDW1)   /* _OSC_UNRECOGNIZED_UUID */
       Return (Arg3)
     }
 
@@ -309,7 +319,17 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
           SUPP = CDW2 & 0x10
           CTRL = CDW3 & 0x10
 
-          If (Arg1 != 1) { CDW1 |= 0x08 } /* unknown revision */
+          /*
+           * Revision error: return the buffer UNCHANGED (only the
+           * status bit) — no masking on the error path. Masking
+           * only applies to a valid revision's control request.
+           */
+          If (Arg1 != 1)
+          {
+            CDW1 |= 0x08 /* unknown revision */
+            Return (Arg3)
+          }
+
           If (CDW3 != CTRL) { CDW1 |= 0x10 } /* capabilities lost */
 
           CDW3 = CTRL
