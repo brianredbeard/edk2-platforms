@@ -402,17 +402,13 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       Name (_CCA, 0)            // Cache Coherency Attribute
 
       Name (_CRS, ResourceTemplate () {
-        /* Bus 0 only: the compact (0x10000) ECAM window decodes
-         * bus 0; a 256-bus declaration makes firmware PciBus and
-         * OS ECAM scans misdecode (ghost functions) — the
-         * compact-ECAM platform rule. */
         WordBusNumber (
           ResourceProducer, MinFixed, MaxFixed, PosDecode,
           0x0,    // AddressGranularity
           0x00,   // AddressMinimum
-          0x00,   // AddressMaximum
+          0xff,   // AddressMaximum
           0x00,   // AddressTranslation
-          0x01    // RangeLength
+          0x100   // RangeLength
         )
 
                 /* Deviation from BRS AML_020 (SHOULD NOT, not MUST NOT):
@@ -531,17 +527,13 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       Name (_CCA, 0)            // Cache Coherency Attribute
 
       Name (_CRS, ResourceTemplate () {
-        /* Bus 0 only: the compact (0x10000) ECAM window decodes
-         * bus 0; a 256-bus declaration makes firmware PciBus and
-         * OS ECAM scans misdecode (ghost functions) — the
-         * compact-ECAM platform rule. */
         WordBusNumber (
           ResourceProducer, MinFixed, MaxFixed, PosDecode,
           0x0,    // AddressGranularity
           0x00,   // AddressMinimum
-          0x00,   // AddressMaximum
+          0xff,   // AddressMaximum
           0x00,   // AddressTranslation
-          0x01    // RangeLength
+          0x100   // RangeLength
         )
 
                 /* Deviation from BRS AML_020 (SHOULD NOT, not MUST NOT):
