@@ -14,7 +14,7 @@
 #pragma pack(1)
 typedef struct {
   EFI_ACPI_MEMORY_MAPPED_CONFIGURATION_BASE_ADDRESS_TABLE_HEADER Header;
-  EFI_ACPI_MEMORY_MAPPED_ENHANCED_CONFIGURATION_SPACE_BASE_ADDRESS_ALLOCATION_STRUCTURE Structures[1];
+  EFI_ACPI_MEMORY_MAPPED_ENHANCED_CONFIGURATION_SPACE_BASE_ADDRESS_ALLOCATION_STRUCTURE Structures[3];
 } EFI_ACPI_MEMORY_MAPPED_CONFIGURATION_BASE_ADDRESS_TABLE;
 #pragma pack()
 
@@ -32,12 +32,38 @@ STATIC EFI_ACPI_MEMORY_MAPPED_CONFIGURATION_BASE_ADDRESS_TABLE Mcfg = {
   },
   // EFI_ACPI_MEMORY_MAPPED_ENHANCED_CONFIGURATION_SPACE_BASE_ADDRESS_ALLOCATION_STRUCTURE Structures[];
   {
-    // PCIe 0
+    // PCIe 0 (Port A, root bridge PCI0)
     {
       // UINT64    BaseAddress;
       0x1100000000,
       // UINT16    PciSegmentGroupNumber;
       0,
+      // UINT8     StartBusNumber;
+      0x00,
+      // UINT8     EndBusNumber;
+      0xff,
+      // UINT32    Reserved;
+      EFI_ACPI_RESERVED_DWORD
+    },
+    // PCIe 2 (Port C, 10G NIC, root bridge PCI2)
+    {
+      // UINT64    BaseAddress;
+      0x1200000000,
+      // UINT16    PciSegmentGroupNumber;
+      2,
+      // UINT8     StartBusNumber;
+      0x00,
+      // UINT8     EndBusNumber;
+      0xff,
+      // UINT32    Reserved;
+      EFI_ACPI_RESERVED_DWORD
+    },
+    // PCIe 4 (Port E, Wi-Fi, root bridge PCI4)
+    {
+      // UINT64    BaseAddress;
+      0x12C0000000,
+      // UINT16    PciSegmentGroupNumber;
+      4,
       // UINT8     StartBusNumber;
       0x00,
       // UINT8     EndBusNumber;

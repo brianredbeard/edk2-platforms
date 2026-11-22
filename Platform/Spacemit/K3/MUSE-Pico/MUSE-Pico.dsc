@@ -142,8 +142,9 @@
   gSpacemitK3TokenSpaceGuid.PcdUsbHostEnableMask|0x19
   # pico-itx / deb1: limit controllers 0,1,2,4 to HS (bit set = HS-only)
   gSpacemitK3TokenSpaceGuid.PcdUsbHostHsOnlyMask|0x17
-  # deb1: enable PCIe Port A + Port B (runtime split by GPIO detection)
-  gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x03
+  # deb1/pico-itx: enable PCIe Port A + Port C (10G NIC, x2) + Port E
+  # (Wi-Fi, x1) — ports A/C/E map to ACPI segments 0/2/4 (PCI0/PCI2/PCI4)
+  gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x15
   # pico-itx / deb1: set pin to low Voltage(1.8v)
   gSpacemitK3TokenSpaceGuid.PcdPcieHostPinState|"lowvoltage"
 

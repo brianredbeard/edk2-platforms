@@ -389,6 +389,282 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       }
     }
 
+    // ---- PCIe root bridge 2 (10G NIC, Port C) --------------------------
+    // Same shape as PCI0 (RISC-V BRS v0.0.2, AML_020/021); ranges from the
+    // board DTB pcie2_rc node. Segment number matches MCFG entry 2.
+    Device (PCI2)
+    {
+      Name (_HID, "PNP0A08")    // PCI Express Root Bridge
+      Name (_CID, "PNP0A03")    // Compatible PCI Root Bridge
+      Name (_UID, 2)            // Unique ID
+      Name (_SEG, 2)            // PCI Segment Group Number
+      Name (_BBN, 0x00)         // PCI Base Bus Number
+      Name (_CCA, 0)            // Cache Coherency Attribute
+
+      Name (_CRS, ResourceTemplate () {
+        WordBusNumber (
+          ResourceProducer, MinFixed, MaxFixed, PosDecode,
+          0x0,    // AddressGranularity
+          0x00,   // AddressMinimum
+          0xff,   // AddressMaximum
+          0x00,   // AddressTranslation
+          0x100   // RangeLength
+        )
+
+        // RISC-V BRS v0.0.2 AML_020: IO space window SHOULD NOT be defined.
+
+        QWordMemory (    // non-prefetchable memory
+          ResourceProducer, PosDecode, MinFixed, MaxFixed,
+          NonCacheable, ReadWrite,
+          0x00000000,           // AddressGranularity
+          0x00110000,           // PCI AddressMinimum
+          0x7FEFFFFF,           // PCI AddressMaximum
+          0x1200000000,         // AddressTranslation
+          0x7FDF0000            // RangeLength
+        )
+
+        QWordMemory (    // 64-bit prefetchable memory
+          ResourceProducer, PosDecode, MinFixed, MaxFixed,
+          Prefetchable, ReadWrite,
+          0x0,                   // AddressGranularity
+          0x0000001500000000,    // AddressMinimum
+          0x00000015FFFFFFFF,    // AddressMaximum
+          0x0000000000000000,    // AddressTranslation
+          0x0000000100000000     // RangeLength
+        )
+      })
+
+      Name (SUPP, 0)  /* PCI _OSC Support Field */
+      Name (CTRL, 0)  /* PCI _OSC Control Field */
+      Method (_OSC, 4, NotSerialized)
+      {
+        CreateDWordField (Arg3, 0, CDW1)
+
+        If (Arg0 == ToUUID ("33DB4D5B-1FF7-401C-9657-7441C03DD766"))
+        {
+          CreateDWordField (Arg3, 4, CDW2)
+          CreateDWordField (Arg3, 8, CDW3)
+
+          // Same MSI-support / PCIeCapability-control split as PCI0.
+          SUPP = CDW2 & 0x10
+          CTRL = CDW3 & 0x10
+
+          If (Arg1 != 1)
+          {
+            CDW1 |= 0x08 /* unknown revision */
+            Return (Arg3)
+          }
+
+          If (CDW3 != CTRL) { CDW1 |= 0x10 } /* capabilities lost */
+
+          CDW3 = CTRL
+          Return (Arg3)
+        }
+        CDW1 |= 0x04 /* unrecognized UUID */
+        Return (Arg3)
+      }
+
+      // ECAM region declared in MCFG (consumed register space, PCI-03).
+      Device (RES2)
+      {
+        Name (_HID, "PNP0C02")
+        Name (_CRS, ResourceTemplate () {
+          QWordMemory (
+            ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+            NonCacheable, ReadWrite,
+            0x0,                   // AddressGranularity
+            0x0000001200000000,    // AddressMinimum (ECAM)
+            0x0000001200FFFFFF,    // AddressMaximum
+            0x0000000000000000,    // AddressTranslation
+            0x000000001000000      // RangeLength
+          )
+        })
+      }
+
+      // PCIe host bridge 2 DBI registers (reservation-only, PCI-04).
+      Device (DBI2)
+      {
+        Name (_HID, "PNP0C02")
+        Name (_UID, 2)
+        Name (_CRS, ResourceTemplate () {
+          QWordMemory (
+            ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+            NonCacheable, ReadWrite,
+            0x0,           // AddressGranularity
+            0x80800000,    // AddressMinimum (DBI)
+            0x80800FFF,    // AddressMaximum
+            0x00000000,    // AddressTranslation
+            0x1000         // RangeLength
+          )
+        })
+      }
+    }
+
+    // ---- PCIe root bridge 4 (Wi-Fi, Port E) ----------------------------
+    // Ranges from the board DTB pcie4_rc node; segment matches MCFG entry 4.
+    Device (PCI4)
+    {
+      Name (_HID, "PNP0A08")    // PCI Express Root Bridge
+      Name (_CID, "PNP0A03")    // Compatible PCI Root Bridge
+      Name (_UID, 4)            // Unique ID
+      Name (_SEG, 4)            // PCI Segment Group Number
+      Name (_BBN, 0x00)         // PCI Base Bus Number
+      Name (_CCA, 0)            // Cache Coherency Attribute
+
+      Name (_CRS, ResourceTemplate () {
+        WordBusNumber (
+          ResourceProducer, MinFixed, MaxFixed, PosDecode,
+          0x0,    // AddressGranularity
+          0x00,   // AddressMinimum
+          0xff,   // AddressMaximum
+          0x00,   // AddressTranslation
+          0x100   // RangeLength
+        )
+
+        // RISC-V BRS v0.0.2 AML_020: IO space window SHOULD NOT be defined.
+
+        QWordMemory (    // non-prefetchable memory
+          ResourceProducer, PosDecode, MinFixed, MaxFixed,
+          NonCacheable, ReadWrite,
+          0x00000000,           // AddressGranularity
+          0x00C0110000,         // PCI AddressMinimum
+          0x00FFFFFFFF,         // PCI AddressMaximum
+          0x1200000000,         // AddressTranslation
+          0x3FEF0000            // RangeLength
+        )
+
+        QWordMemory (    // 64-bit prefetchable memory
+          ResourceProducer, PosDecode, MinFixed, MaxFixed,
+          Prefetchable, ReadWrite,
+          0x0,                   // AddressGranularity
+          0x0000001300000000,    // AddressMinimum
+          0x00000013FFFFFFFF,    // AddressMaximum
+          0x0000000000000000,    // AddressTranslation
+          0x0000000100000000     // RangeLength
+        )
+      })
+
+      Name (SUPP, 0)  /* PCI _OSC Support Field */
+      Name (CTRL, 0)  /* PCI _OSC Control Field */
+      Method (_OSC, 4, NotSerialized)
+      {
+        CreateDWordField (Arg3, 0, CDW1)
+
+        If (Arg0 == ToUUID ("33DB4D5B-1FF7-401C-9657-7441C03DD766"))
+        {
+          CreateDWordField (Arg3, 4, CDW2)
+          CreateDWordField (Arg3, 8, CDW3)
+
+          // Same MSI-support / PCIeCapability-control split as PCI0.
+          SUPP = CDW2 & 0x10
+          CTRL = CDW3 & 0x10
+
+          If (Arg1 != 1)
+          {
+            CDW1 |= 0x08 /* unknown revision */
+            Return (Arg3)
+          }
+
+          If (CDW3 != CTRL) { CDW1 |= 0x10 } /* capabilities lost */
+
+          CDW3 = CTRL
+          Return (Arg3)
+        }
+        CDW1 |= 0x04 /* unrecognized UUID */
+        Return (Arg3)
+      }
+
+      // ECAM region declared in MCFG (consumed register space, PCI-03).
+      Device (RES4)
+      {
+        Name (_HID, "PNP0C02")
+        Name (_CRS, ResourceTemplate () {
+          QWordMemory (
+            ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+            NonCacheable, ReadWrite,
+            0x0,                   // AddressGranularity
+            0x00000012C0000000,    // AddressMinimum (ECAM)
+            0x00000012C0FFFFFF,    // AddressMaximum
+            0x0000000000000000,    // AddressTranslation
+            0x000000001000000      // RangeLength
+          )
+        })
+      }
+
+      // PCIe host bridge 4 DBI registers (reservation-only, PCI-04).
+      Device (DBI4)
+      {
+        Name (_HID, "PNP0C02")
+        Name (_UID, 4)
+        Name (_CRS, ResourceTemplate () {
+          QWordMemory (
+            ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+            NonCacheable, ReadWrite,
+            0x0,           // AddressGranularity
+            0x81000000,    // AddressMinimum (DBI)
+            0x81000FFF,    // AddressMaximum
+            0x00000000,    // AddressTranslation
+            0x1000         // RangeLength
+          )
+        })
+      }
+    }
+
+    // ---- Wi-Fi rfkill-gpio (DT: rfkill-pcie-wlan, shutdown-gpios) ------
+    // PRP0001 + compatible binds drivers/net/rfkill/rfkill-gpio.c via
+    // __acpi_match_device; "shutdown-gpios" resolves against the GpioIo in
+    // _CRS referencing \_SB.GPIO flat pin 35 (bank1 line3, active-high).
+    Device (WLEN)
+    {
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x80)
+      Name (_CCA, 0)
+      Name (_CRS, ResourceTemplate ()
+      {
+        // ActiveHigh, Shared (rfkill lines may be shared in hardware)
+        GpioIo (Shared, PullDefault, 0x0000, 0x0000, IoRestrictionOutputOnly,
+          "\\_SB.GPIO", 0x00, ResourceConsumer, , )
+        {
+          35
+        }
+      })
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "rfkill-gpio" },
+          Package () { "name", "rfkill-pcie-wlan" },
+          Package () { "type", "wlan" },
+          Package () { "shutdown-gpios", Package () { ^WLEN, 0, 0, 0 } },
+        }
+      })
+    }
+
+    // ---- Bluetooth rfkill-gpio (DT: rfkill-usb-bt, shutdown-gpios) -----
+    // \_SB.GPIO flat pin 30 (bank0 line30, active-high).
+    Device (BTEN)
+    {
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x81)
+      Name (_CCA, 0)
+      Name (_CRS, ResourceTemplate ()
+      {
+        GpioIo (Shared, PullDefault, 0x0000, 0x0000, IoRestrictionOutputOnly,
+          "\\_SB.GPIO", 0x00, ResourceConsumer, , )
+        {
+          30
+        }
+      })
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "rfkill-gpio" },
+          Package () { "name", "rfkill-usb-bt" },
+          Package () { "type", "bluetooth" },
+          Package () { "shutdown-gpios", Package () { ^BTEN, 0, 0, 0 } },
+        }
+      })
+    }
+
     // ---- GPIO controller (spacemit,k1-gpio via spacemit,k3-gpio) ------
     Device (GPIO)
     {
