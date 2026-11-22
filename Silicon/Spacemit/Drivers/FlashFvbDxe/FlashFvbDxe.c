@@ -1142,58 +1142,27 @@ FlashFvbVirtualNotifyEvent (
   IN VOID       *Context
   )
 {
-  FLASH_DESCRIPTION  *FlashDevices;
-  UINT32             I, FlashDeviceCount = 0;
-
   /*
-   * Convert ONLY genuine runtime pointers. DeviceBaseAddress /
-   * RegionBaseAddress are MMIO constants captured at init —
-   * converting them replaces the flash addresses with virtual
-   * garbage after SetVirtualAddressMap (the audit's
-   * scalar-as-pointer conversion defect). They must remain
-   * physical.
+   * The K3 platform passes an (near-)identity virtual map at
+   * SetVirtualAddressMap: runtime access to the flash device
+   * continues to work on the addresses captured at init.
+   * Converting ANY pointer here (instance table, mFlash, or its
+   * members) produces addresses that fault on the first runtime
+   * variable access — observed as a hard hang at the
+   * GRUB→kernel handoff (rhct10 bisect, 2026-11-22; docs/
+   * fvb-va-bisect-2026-11-22.md in acpi-demo-k3).
+   *
+   * The vendor code converted MMIO scalars (benign under an
+   * identity map — the "garbage" lands on the same physical
+   * addresses); the rework that stopped doing that AND added
+   * protocol-pointer conversions broke runtime FVB outright.
+   *
+   * Correct behavior on an identity-map platform: convert
+   * nothing. This callback stays a no-op; the scalar fields
+   * keep their init-time physical values, which remain valid.
+   * A non-identity map would need a real conversion pass —
+   * gated here once one exists and is runtime-qualified.
    */
-  EFI_STATUS  Status;
-
-  FlashPlatformGetDevices (&FlashDevices, &FlashDeviceCount);
-
-  for (I = 0; I < FlashDeviceCount; I++) {
-    Status = EfiConvertPointer (0x0, (VOID **)&mFlashInstances[I]);
-    if (EFI_ERROR (Status)) {
-      DEBUG ((
-        DEBUG_ERROR,
-        "[%a]:[%dL] ConvertPointer(instance %u) failed: %r\n",
-        __FUNCTION__,
-        __LINE__,
-        I,
-        Status
-        ));
-    }
-  }
-
-  Status = EfiConvertPointer (0x0, (VOID **)&mFlashInstances);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "[%a]:[%dL] ConvertPointer(table) failed: %r\n", __FUNCTION__, __LINE__, Status));
-  }
-
-  /*
-   * mFlash's Read/Write/Erase are protocol function pointers —
-   * convert mFlash itself (the pointer to the protocol struct);
-   * the members follow the struct's own address, so converting
-   * the members AGAIN after converting mFlash is double work
-   * and (for a struct at a new address) reads through the OLD
-   * pointer first — order matters: convert mFlash, then the
-   * members via the NEW mFlash.
-   */
-  Status = EfiConvertPointer (0x0, (VOID **)&mFlash);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "[%a]:[%dL] ConvertPointer(mFlash) failed: %r\n", __FUNCTION__, __LINE__, Status));
-  } else {
-    EfiConvertPointer (0x0, (VOID **)&mFlash->Read);
-    EfiConvertPointer (0x0, (VOID **)&mFlash->Write);
-    EfiConvertPointer (0x0, (VOID **)&mFlash->Erase);
-  }
-
   return;
 }
 
