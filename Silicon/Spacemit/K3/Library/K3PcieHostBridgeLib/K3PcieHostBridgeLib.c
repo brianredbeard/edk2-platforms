@@ -1571,6 +1571,37 @@ K3PcieHostBridgeLibConstructor (
   K3PcieInitPortABSplitPolicy (RootBridgeResourceConfigs, PortEnabled);
 
   //
+  // Port A lane-geometry pinning (K3 Pico-ITX field regression,
+  // 2026-11-22): when Port B is disabled (e.g. mask 0x15 = A+C+E),
+  // the split policy above bails before the GPIO detect and Port A
+  // keeps its PCD default NumLanes (4) — training x4 on a board
+  // whose Port A wiring is x2. The NVMe behind Port A then
+  // vanishes at BDS. This board's Port A is ALWAYS the x2 split
+  // geometry (detect GPIO 89 wiring); pin it regardless of Port B:
+  // same mux value (PORTA_MODE_X2_PORTB_X2) and NumPhys=1 that the
+  // qualified rhct8 configuration (mask 0x03, split enabled) used.
+  // Port B itself stays disabled — only Port A's geometry is pinned.
+  //
+  {
+    INT32  PortAIdx = K3PcieFindIndexByPortId (0);
+    INT32  PortBIdx = K3PcieFindIndexByPortId (1);
+
+    if ((PortAIdx >= 0) && PortEnabled[PortAIdx] &&
+        ((PortBIdx < 0) || !PortEnabled[PortBIdx]))
+    {
+      /* mDwPcies[] instances don't exist yet here; the init loop
+       * below applies NumLanes=2 to Port A via mPortABSplitEnabled. */
+
+      if (mK3PcieReg[PortAIdx].NumPhys > 1) {
+        mK3PcieReg[PortAIdx].NumPhys = 1;
+      }
+
+      mPortABSplitEnabled = TRUE;
+      DEBUG ((DEBUG_INFO, "K3Pcie: PortA pinned to x2 split geometry (PortB disabled)\n"));
+    }
+  }
+
+  //
   // If Port A is not split, Port B must be skipped (shared lanes).
   //
   if (!mPortABSplitEnabled) {
