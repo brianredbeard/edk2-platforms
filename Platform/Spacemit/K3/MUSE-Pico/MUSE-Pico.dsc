@@ -546,7 +546,7 @@
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].ConfigBase|0x1200000000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].ConfigSize|0x10000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].BusBase|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].BusLimit|0xFF
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].BusLimit|0x00
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciBase|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciSize|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.CpuBase|0x0
@@ -602,7 +602,7 @@
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].ConfigBase|0x12C0000000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].ConfigSize|0x10000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusBase|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusLimit|0xFF
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusLimit|0x00
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciBase|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciSize|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.CpuBase|0x0
