@@ -14,9 +14,8 @@
 #pragma pack(1)
 typedef struct {
   EFI_ACPI_MEMORY_MAPPED_CONFIGURATION_BASE_ADDRESS_TABLE_HEADER Header;
-  EFI_ACPI_MEMORY_MAPPED_ENHANCED_CONFIGURATION_SPACE_BASE_ADDRESS_ALLOCATION_STRUCTURE Structures[3];
+  EFI_ACPI_MEMORY_MAPPED_ENHANCED_CONFIGURATION_SPACE_BASE_ADDRESS_ALLOCATION_STRUCTURE Structures[1];
 } EFI_ACPI_MEMORY_MAPPED_CONFIGURATION_BASE_ADDRESS_TABLE;
-#pragma pack()
 
 STATIC EFI_ACPI_MEMORY_MAPPED_CONFIGURATION_BASE_ADDRESS_TABLE Mcfg = {
   // EFI_ACPI_MEMORY_MAPPED_CONFIGURATION_BASE_ADDRESS_TABLE_HEADER Header;
@@ -44,33 +43,18 @@ STATIC EFI_ACPI_MEMORY_MAPPED_CONFIGURATION_BASE_ADDRESS_TABLE Mcfg = {
       0xff,
       // UINT32    Reserved;
       EFI_ACPI_RESERVED_DWORD
-    },
-    // PCIe 2 (Port C, 10G NIC, root bridge PCI2)
-    {
-      // UINT64    BaseAddress;
-      0x1200000000,
-      // UINT16    PciSegmentGroupNumber;
-      2,
-      // UINT8     StartBusNumber;
-      0x00,
-      // UINT8     EndBusNumber;
-      0xff,
-      // UINT32    Reserved;
-      EFI_ACPI_RESERVED_DWORD
-    },
-    // PCIe 4 (Port E, Wi-Fi, root bridge PCI4)
-    {
-      // UINT64    BaseAddress;
-      0x12C0000000,
-      // UINT16    PciSegmentGroupNumber;
-      4,
-      // UINT8     StartBusNumber;
-      0x00,
-      // UINT8     EndBusNumber;
-      0xff,
-      // UINT32    Reserved;
-      EFI_ACPI_RESERVED_DWORD
-    },
+    }
+    /*
+     * PCIe 2/4 (Ports C/E): NO MCFG entries. This platform's
+     * ECAM windows are compact (0x10000, non-standard decode) —
+     * a 3-entry MCFG makes the firmware PciBus misdecode every
+     * segment (ghost multiplication; NvmeDxe unbinds and the
+     * NVMe block device vanishes at BDS — field result
+     * 2026-11-22, docs/fvb-va-bisect-2026-11-22.md in
+     * acpi-demo-k3). Segments 2/4 ride the kernel-side
+     * k3_dw_ecam quirk instead (the DT pcie-spacemit behavior
+     * ported to ACPI), carried by the acpidebug kernel RPM.
+     */
   }
 };
 
