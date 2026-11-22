@@ -271,7 +271,7 @@
 
   # For MMU type >= sv39, the width of physical address is 56-bit.
   gSpacemitTokenSpaceGuid.PcdMemoryAddressWidthMax|56
-  gSpacemitTokenSpaceGuid.PcdIoAddressWidthMax|32
+  gSpacemitTokenSpaceGuid.PcdIoAddressWidthMax|40
 
   # for QSPI controller in K3, Spi flash is map to address below
   gSpacemitTokenSpaceGuid.PcdSFMemMapBaseAddress|0xB8000000
