@@ -254,7 +254,7 @@
 !if $(DEBUG_ON_SERIAL_PORT) == TRUE
   # Errors only: INFO/LOAD/WARN/INIT debug prints flood the serial console and
   # slow the GRUB menu countdown (see MUSE-Pico.dsc status-code mask note).
-  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0xFFFFFFFF
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80000000
 !endif
 
   #
