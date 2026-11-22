@@ -415,6 +415,21 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
           0x01    // RangeLength
         )
 
+                /* Deviation from BRS AML_020 (SHOULD NOT, not MUST NOT):
+         * the RTL8127/RTL8852BE endpoints declare 256-byte I/O BARs;
+         * no I/O window = fatal PciBusDxe resource conflict (rhct11-wifi
+         * bisect 2026-11-22). The DT describes 1 MiB I/O windows per
+         * root; mirror them here. */
+        QWordIo (
+          ResourceProducer, MinFixed, MaxFixed, PosDecode, EntireRange,
+          0x0000000000000000, // AddressGranularity
+          0x0000000000110000, // AddressMinimum (PCI)
+          0x000000000011FFFF, // AddressMaximum (PCI, 1 MiB window)
+          0x0000001200010000, // AddressTranslation (CPU base)
+          0x00010000,         // RangeLength
+          ,, , TypeStatic
+        )
+
         // RISC-V BRS v0.0.2 AML_020: IO space window SHOULD NOT be defined.
 
         QWordMemory (    // non-prefetchable memory
@@ -527,6 +542,21 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
           0x00,   // AddressMaximum
           0x00,   // AddressTranslation
           0x01    // RangeLength
+        )
+
+                /* Deviation from BRS AML_020 (SHOULD NOT, not MUST NOT):
+         * the RTL8127/RTL8852BE endpoints declare 256-byte I/O BARs;
+         * no I/O window = fatal PciBusDxe resource conflict (rhct11-wifi
+         * bisect 2026-11-22). The DT describes 1 MiB I/O windows per
+         * root; mirror them here. */
+        QWordIo (
+          ResourceProducer, MinFixed, MaxFixed, PosDecode, EntireRange,
+          0x0000000000000000, // AddressGranularity
+          0x0000000000110000, // AddressMinimum (PCI)
+          0x000000000011FFFF, // AddressMaximum (PCI, 1 MiB window)
+          0x00000012C0010000, // AddressTranslation (CPU base)
+          0x00010000,         // RangeLength
+          ,, , TypeStatic
         )
 
         // RISC-V BRS v0.0.2 AML_020: IO space window SHOULD NOT be defined.

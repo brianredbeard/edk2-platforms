@@ -547,9 +547,12 @@
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].ConfigSize|0x10000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].BusBase|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].BusLimit|0x00
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciBase|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciSize|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.CpuBase|0x0
+  # DT pcie2_rc I/O window (1 MiB): Realtek endpoints request 256-byte
+  # I/O BARs; a zero I/O aperture is a fatal PciBusDxe resource conflict
+  # (rhct11-wifi bisect: Out Of Resource → root torn down → NVMe lost).
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciBase|0x10000
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciSize|0x100000
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.CpuBase|0x1200010000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Mem.PciBase|0x00110000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Mem.PciSize|0x7FEF0000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Mem.CpuBase|0x1200110000
@@ -603,9 +606,10 @@
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].ConfigSize|0x10000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusBase|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusLimit|0x00
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciBase|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciSize|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.CpuBase|0x0
+  # DT pcie4_rc I/O window (1 MiB) — same rationale as segment 2.
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciBase|0x10000
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciSize|0x100000
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.CpuBase|0x12C0010000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Mem.PciBase|0xC0110000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Mem.PciSize|0x3FEF0000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Mem.CpuBase|0x12C0110000
