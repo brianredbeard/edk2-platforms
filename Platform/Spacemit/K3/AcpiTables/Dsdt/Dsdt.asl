@@ -419,10 +419,10 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
         QWordIo (
           ResourceProducer, MinFixed, MaxFixed, PosDecode, EntireRange,
           0x0000000000000000, // AddressGranularity
-          0x0000000000110000, // AddressMinimum (PCI)
-          0x000000000011FFFF, // AddressMaximum (PCI, 1 MiB window)
+          0x0000000000010000, // AddressMinimum (PCI) — matches the PCD Io.PciBase
+          0x000000000010FFFF, // AddressMaximum (PCI) — PciBase + PciSize (1 MiB)
           0x0000001200010000, // AddressTranslation (CPU base)
-          0x00010000,         // RangeLength
+          0x000100000,        // RangeLength — matches the PCD Io.PciSize
           ,, , TypeStatic
         )
 
@@ -544,10 +544,10 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
         QWordIo (
           ResourceProducer, MinFixed, MaxFixed, PosDecode, EntireRange,
           0x0000000000000000, // AddressGranularity
-          0x0000000000110000, // AddressMinimum (PCI)
-          0x000000000011FFFF, // AddressMaximum (PCI, 1 MiB window)
+          0x0000000000010000, // AddressMinimum (PCI) — matches the PCD Io.PciBase
+          0x000000000010FFFF, // AddressMaximum (PCI) — PciBase + PciSize (1 MiB)
           0x00000012C0010000, // AddressTranslation (CPU base)
-          0x00010000,         // RangeLength
+          0x000100000,        // RangeLength — matches the PCD Io.PciSize
           ,, , TypeStatic
         )
 
