@@ -145,6 +145,9 @@
   # deb1/pico-itx: enable PCIe Port A + Port C (10G NIC, x2) + Port E
   # (Wi-Fi, x1) — ports A/C/E map to ACPI segments 0/2/4 (PCI0/PCI2/PCI4)
   gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x15
+  # pico-itx Port A wiring is x2 (the detect-GPIO-89 split geometry);
+  # with Port B disabled the policy cannot derive it — force it.
+  gSpacemitK3TokenSpaceGuid.PcdPciePortAGeometryWhenBDisabled|0x02
   # pico-itx / deb1: set pin to low Voltage(1.8v)
   gSpacemitK3TokenSpaceGuid.PcdPcieHostPinState|"lowvoltage"
 
@@ -190,6 +193,9 @@
   gSpacemitK3TokenSpaceGuid.PcdUsbHostHsOnlyMask|0x10
   # enable PCIe Port A (x4, WiFi) + Port E (pcie4_rc, phy5)
   gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x11
+  # FML13V05 Port A wiring is x4 — pin it (the split-derived x2
+  # would mis-train the Wi-Fi link).
+  gSpacemitK3TokenSpaceGuid.PcdPciePortAGeometryWhenBDisabled|0x04
 
   # LCD configuration: eDP internal panel + DP1 via Type-C PortD (ANX7447)
   gSpacemitTokenSpaceGuid.PcdDisplayConnectorsPriority.DisplayOrderCount|2

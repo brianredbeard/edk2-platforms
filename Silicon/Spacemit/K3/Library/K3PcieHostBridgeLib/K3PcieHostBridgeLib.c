@@ -149,6 +149,7 @@ STATIC UINTN    mDwPciesCount;
 // - Otherwise Port B is skipped and Port A uses its configured width (x4/x8).
 //
 STATIC BOOLEAN  mPortABSplitEnabled;
+STATIC UINT8     mForcedPortANumLanes;  /* 0 = none; 2 or 4 = forced */
 
 // Track PHY power-on to avoid re-initializing a PHY shared by multiple ports.
 STATIC BOOLEAN  mPhyPowered[16];
@@ -1571,33 +1572,40 @@ K3PcieHostBridgeLibConstructor (
   K3PcieInitPortABSplitPolicy (RootBridgeResourceConfigs, PortEnabled);
 
   //
-  // Port A lane-geometry pinning (K3 Pico-ITX field regression,
-  // 2026-11-22): when Port B is disabled (e.g. mask 0x15 = A+C+E),
-  // the split policy above bails before the GPIO detect and Port A
-  // keeps its PCD default NumLanes (4) — training x4 on a board
-  // whose Port A wiring is x2. The NVMe behind Port A then
-  // vanishes at BDS. This board's Port A is ALWAYS the x2 split
-  // geometry (detect GPIO 89 wiring); pin it regardless of Port B:
-  // same mux value (PORTA_MODE_X2_PORTB_X2) and NumPhys=1 that the
-  // qualified rhct8 configuration (mask 0x03, split enabled) used.
-  // Port B itself stays disabled — only Port A's geometry is pinned.
+  // Port A lane geometry when Port B is disabled (SKU-gated).
+  //
+  // The Pico-ITX field regression (2026-11-22): mask 0x15 (A+C+E)
+  // disabled Port B, the split policy bailed before the GPIO
+  // detect, and Port A trained x4 on x2 wiring — the NVMe behind
+  // Port A vanished at BDS. The unconditional x2 pinning that
+  // fixed it is WRONG for other SKUs: FML13V05 (mask 0x11, A+E)
+  // wires Port A as x4 for Wi-Fi. The geometry is board wiring,
+  // not mask-derivable (rhct12 audit, "constrain EFI fixes to
+  // their demonstrated scope").
+  //
+  // PcdPciePortAGeometryWhenBDisabled: 0 = historical policy
+  // behavior, 2 = force x2 (Pico-ITX), 4 = force x4 (FML13V05).
   //
   {
-    INT32  PortAIdx = K3PcieFindIndexByPortId (0);
-    INT32  PortBIdx = K3PcieFindIndexByPortId (1);
+    UINT8  Geometry = PcdGet8 (PcdPciePortAGeometryWhenBDisabled);
 
-    if ((PortAIdx >= 0) && PortEnabled[PortAIdx] &&
-        ((PortBIdx < 0) || !PortEnabled[PortBIdx]))
-    {
-      /* mDwPcies[] instances don't exist yet here; the init loop
-       * below applies NumLanes=2 to Port A via mPortABSplitEnabled. */
+    if (Geometry == 2 || Geometry == 4) {
+      INT32  PortAIdx = K3PcieFindIndexByPortId (0);
+      INT32  PortBIdx = K3PcieFindIndexByPortId (1);
 
-      if (mK3PcieReg[PortAIdx].NumPhys > 1) {
-        mK3PcieReg[PortAIdx].NumPhys = 1;
+      if ((PortAIdx >= 0) && PortEnabled[PortAIdx] &&
+          ((PortBIdx < 0) || !PortEnabled[PortBIdx]))
+      {
+        /* The init loop below applies NumLanes to Port A via
+         * mPortABSplitEnabled + the NumLanes pin. */
+        if (mK3PcieReg[PortAIdx].NumPhys > 1) {
+          mK3PcieReg[PortAIdx].NumPhys = 1;
+        }
+
+        mPortABSplitEnabled = TRUE;
+        mForcedPortANumLanes = Geometry;
+        DEBUG ((DEBUG_INFO, "K3Pcie: PortA pinned to x%u geometry (PortB disabled, PCD)\n", Geometry));
       }
-
-      mPortABSplitEnabled = TRUE;
-      DEBUG ((DEBUG_INFO, "K3Pcie: PortA pinned to x2 split geometry (PortB disabled)\n"));
     }
   }
 
@@ -1662,10 +1670,11 @@ K3PcieHostBridgeLibConstructor (
     }
 
     //
-    // If lane split is enabled, Port A must train as x2.
+    // If lane split is enabled, Port A must train as x2 — unless a
+    // per-SKU geometry PCD forces a different width (FML13V05: x4).
     //
     if (mPortABSplitEnabled && (mK3PcieReg[Index].PortId == 0)) {
-      mDwPcies[Index]->NumLanes = 2;
+      mDwPcies[Index]->NumLanes = mForcedPortANumLanes ? mForcedPortANumLanes : 2;
     }
 
     Status = K3PciHostBridgeInit (Index);
