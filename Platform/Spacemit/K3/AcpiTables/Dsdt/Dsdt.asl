@@ -703,10 +703,16 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       Name (_CCA, 0)
       Name (_CRS, ResourceTemplate ()
       {
+        /* Full controller extent: bank 3 spans 0x100..0x13C (15
+         * regs x 4B from 0x100), so 0x100 bytes is undersized and
+         * page rounding masked it. The vendor SDK's own k3.dtsi
+         * reserves 0x800 for this compatible; nothing else claims
+         * 0xD4019100-0xD4019FFF (next sibling: pwm@d401a000).
+         * rhct12 audit, GPIO change #1. */
         QWordMemory (
           ResourceConsumer, PosDecode, MinFixed, MaxFixed,
           NonCacheable, ReadWrite,
-          0x0, 0xD4019000, 0xD40190FF, 0x0, 0x100
+          0x0, 0xD4019000, 0xD40197FF, 0x0, 0x800
         )
         Interrupt (ResourceConsumer, Level, ActiveHigh, Shared) { 58 }
       })
@@ -943,7 +949,25 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
            * driver via device_property_read_u32_array. */
           Package () { "sensor_range", Package () { 0, 7 } },
           Package () { "tsensor_map", Package () { 1, 0, 1, 1, 1, 1, 1, 1 } },
-          Package () { "temperature_offset", 274 }
+          Package () { "temperature_offset", 274 },
+          /* Per-channel thermal trips (milli-degrees, flat pairs of
+           * passive/hot indexed by channel): ch0 Top 70/90, ch2 VPU
+           * 72/92, ch3 GPU 72/92, ch4 Cluster0 75/95 (runs ~4C hotter),
+           * ch5-7 Cluster1-3 72/92. Consumed by the ACPI zone builder
+           * in the k3_tsensor driver; without it the driver's staggered
+           * defaults apply. Hysteresis defaults: 8C first passive.
+           * Runtime-tunable via sysfs (RW trip flags).
+           * Research: docs/thermal-domain-hysteresis-2026-11-23.md */
+          Package () { "thermal-trips", Package () {
+            70000, 90000,
+            72000, 92000,
+            72000, 92000,
+            75000, 95000,
+            72000, 92000,
+            72000, 92000,
+            72000, 92000,
+            72000, 92000
+          } }
         }
       })
     }
