@@ -140,7 +140,7 @@
   # split policy (the historical behavior), 2 = force x2 (Pico-ITX
   # wiring), 4 = force x4 (FML13V05 wiring). The unconditional x2
   # pinning was a Pico-ITX-only field fix that mis-trains other SKUs.
-  gSpacemitK3TokenSpaceGuid.PcdPciePortAGeometryWhenBDisabled|0x00|UINT8|0x30010006
+  gSpacemitK3TokenSpaceGuid.PcdPciePortAGeometryWhenBDisabled|0x00|UINT8|0x30010007
 
   # decide whether enable CTF2301
   gSpacemitK3TokenSpaceGuid.PcdCtf2301Enable|FALSE|BOOLEAN|0x30010006
