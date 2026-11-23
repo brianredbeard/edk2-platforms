@@ -460,9 +460,13 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
           NonCacheable, ReadWrite,
           0x00000000,           // AddressGranularity
           0x00110000,           // PCI AddressMinimum
-          0x7FEFFFFF,           // PCI AddressMaximum
+          0x7FFFFFFF,           // PCI AddressMaximum (matches the
+                                // PCD Mem.PciBase+PciSize; rhct12
+                                // audit: the prior 0x7FEFFFFF end
+                                // withheld the final 1 MiB from
+                                // the OS that EFI could allocate)
           0x1200000000,         // AddressTranslation
-          0x7FDF0000            // RangeLength
+          0x7FEF0000            // RangeLength (PCD-consistent)
         )
 
         QWordMemory (    // 64-bit prefetchable memory
@@ -515,10 +519,15 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
             ResourceConsumer, PosDecode, MinFixed, MaxFixed,
             NonCacheable, ReadWrite,
             0x0,                   // AddressGranularity
-            0x0000001200000000,    // AddressMinimum (ECAM)
-            0x0000001200FFFFFF,    // AddressMaximum
+            0x0000001200000000,    // AddressMinimum (ECAM viewport, 64 KiB)
+            0x000000120000FFFF,    // AddressMaximum (the actual
+                                      // DesignWare config viewport
+                                      // extent; rhct12 audit: the
+                                      // prior 16 MiB reservation
+                                      // over-covered the I/O aperture
+                                      // and the v11d MMIO allocations)
             0x0000000000000000,    // AddressTranslation
-            0x000000001000000      // RangeLength
+            0x0000000010000       // RangeLength (64 KiB)
           )
         })
       }
@@ -640,10 +649,15 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
             ResourceConsumer, PosDecode, MinFixed, MaxFixed,
             NonCacheable, ReadWrite,
             0x0,                   // AddressGranularity
-            0x00000012C0000000,    // AddressMinimum (ECAM)
-            0x00000012C0FFFFFF,    // AddressMaximum
+            0x00000012C0000000,    // AddressMinimum (ECAM viewport, 64 KiB)
+            0x00000012C000FFFF,    // AddressMaximum (the actual
+                                      // DesignWare config viewport
+                                      // extent; rhct12 audit: the
+                                      // prior 16 MiB reservation
+                                      // over-covered the I/O aperture
+                                      // and the v11d MMIO allocations)
             0x0000000000000000,    // AddressTranslation
-            0x000000001000000      // RangeLength
+            0x0000000010000       // RangeLength (64 KiB)
           )
         })
       }
