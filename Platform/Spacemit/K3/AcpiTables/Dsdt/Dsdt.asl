@@ -992,19 +992,25 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
           Package () { "tsensor_map", Package () { 1, 0, 1, 1, 1, 1, 1, 1 } },
           Package () { "temperature_offset", 274 },
           /* Per-channel thermal trips (milli-degrees, flat pairs of
-           * passive/hot indexed by channel): ch0 Top 70/90, ch2 VPU
-           * 72/92, ch3 GPU 72/92, ch4 Cluster0 75/95 (runs ~4C hotter),
-           * ch5-7 Cluster1-3 72/92. Consumed by the ACPI zone builder
-           * in the k3_tsensor driver; without it the driver's staggered
-           * defaults apply. Hysteresis defaults: 8C first passive.
+           * passive/hot indexed by RAW channel number 0-7, matching
+           * the driver's channel*2 indexing; ch1 is unwired on this
+           * SoC and its slot carries the default): ch0 Top 70/90,
+           * ch2 VPU 72/92, ch3 GPU 72/92, ch4 Cluster0 75/95 (runs
+           * ~4C hotter), ch5-7 Cluster1-3 72/92. The 2026-11-23 fix
+           * moved the 75/95 hotspot pair from index 3 to 4 — the
+           * original placement put it on ch3 and left the actual
+           * hotspot (ch4) at the default. Consumed by the ACPI zone
+           * builder in the k3_tsensor driver; without it the driver's
+           * staggered defaults apply. Hysteresis defaults: 8C first
+           * passive.
            * Runtime-tunable via sysfs (RW trip flags).
            * Research: docs/thermal-domain-hysteresis-2026-11-23.md */
           Package () { "thermal-trips", Package () {
             70000, 90000,
             72000, 92000,
             72000, 92000,
+            74000, 94000,
             75000, 95000,
-            72000, 92000,
             72000, 92000,
             72000, 92000,
             72000, 92000
