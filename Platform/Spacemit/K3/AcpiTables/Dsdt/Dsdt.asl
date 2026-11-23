@@ -38,8 +38,22 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
        * The kernel passes a 2-DWORD buffer for the platform _OSC:
        * DWORD[0] = Query/Status, DWORD[1] = Support. There is no
        * Control DWORD — accessing offset 8 raises AE_AML_BUFFER_LIMIT.
+       *
+       * Buffer-length validation (rhct12 audit): a malformed 1-DWORD
+       * buffer raised AE_AML_BUFFER_LIMIT at the CreateDWordField for
+       * CDW2. DWORD[0] always exists (even in a 1-DWORD buffer) so
+       * the status field is created unconditionally; the Support
+       * field only when the buffer actually holds two DWORDs. A
+       * too-short buffer is a query failure: status set, returned.
        */
       CreateDWordField (Arg3, 0, CDW1)   /* Query/Status */
+
+      If (LLess (SizeOf (Arg3), 8))
+      {
+        Or (CDW1, 0x04, CDW1)   /* failure; buffer shape invalid */
+        Return (Arg3)
+      }
+
       CreateDWordField (Arg3, 4, CDW2)   /* Support */
 
       /*
@@ -57,10 +71,23 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
       /* Platform-wide capabilities UUID */
       If (LEqual (Arg0, ToUUID ("0811B06E-4A27-44F9-8D60-3CBBC22E7B48")))
       {
-        /* Confirm only PCLPI (0x80): backed by _LPI + SBI HSM suspend */
+        /*
+         * Confirm only PCLPI (0x80): backed by _LPI + SBI HSM
+         * suspend. When requested capability bits are dropped,
+         * ACPI 6.6 6.2.11.3 requires STS_CAP_SUPPORT_ERROR
+         * (bit 4) in the returned status so the OS knows some
+         * requested capabilities were not granted (rhct12 audit:
+         * support 0x180 returned 0x80 with status zero — the OS
+         * could not distinguish "not supported" from "granted").
+         */
+        Store (CDW2, Local0)         /* the ORIGINAL request */
         And (CDW2, 0x80, SBP)
         Store (SBP, CDW2)
-        Store (0, CDW1)   /* success */
+        Store (0, CDW1)
+        If (LNotEqual (Local0, SBP))
+        {
+          Or (CDW1, 0x10, CDW1)   /* STS_CAP_SUPPORT_ERROR */
+        }
         Return (Arg3)
       }
 
