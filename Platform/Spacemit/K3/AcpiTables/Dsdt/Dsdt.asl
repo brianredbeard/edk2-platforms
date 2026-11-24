@@ -685,6 +685,13 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
     // PRP0001 + compatible binds drivers/net/rfkill/rfkill-gpio.c via
     // __acpi_match_device; "shutdown-gpios" resolves against the GpioIo in
     // _CRS referencing \_SB.GPIO flat pin 35 (bank1 line3, active-high).
+    //
+    // 2026-11-24 field finding: the rtw8852be's rfkill input is the CHIP's
+    // GPIO9 (R_AX_GPIO_EXT_CTRL 0x60 bit 1), measured LOW (radio disabled)
+    // at the silicon. Board pin 35 (this device's line) measures LOW
+    // (enable) and pulsing it does NOT change GPIO9 — the chip's enable
+    // input is not this line. The EC's radio domain or the chip's PD_N
+    // power-on sequence controls it; see the audit doc's Wi-Fi section.
     Device (WLEN)
     {
       Name (_HID, "PRP0001")
@@ -905,6 +912,13 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
           // State 0 is a minimum-duty floor (not off): the no-fan thermal
           // equilibrium sits near the first trip, and a fan that fully
           // stops below the trips oscillates on/off across it.
+          //
+          // 2026-11-24: the pwm-fan driver's OF-only cooling-device
+          // registration fails under ACPI (the synthesized of_node), so
+          // nothing modulates these states — the probe's MAX_PWM default
+          // (100%) ran the fan constantly until the kernel-side fix
+          // (k3-pwmfan-acpi-cooling.patch). The governor-level zone
+          // binding remains open in the kernel patches.
           Package () { "cooling-levels", Package () { 77, 153, 204, 255 } }
         }
       })
