@@ -74,6 +74,28 @@
 #define TWSI8_CLK_ENABLE        0x3
 
 //
+// Wi-Fi enable: SoC GPIO pin 35 (the RTL8852BE's GPIO9 hw-rfkill
+// input line). The pin's default MFPR mux on this board is the
+// gmac1 interrupt (K3_PADCONF(35, 1)) — the hold must remux it
+// to GPIO (function 0), then set direction-out + level-high.
+// GPIO controller 0xd4019000: pin 35 = group 1 bit 3.
+//   MFPR (pinmux): 0xd401e08c — func[2:0]=0 (GPIO), drive[12:9]=3,
+//                  pull[15:13]=0 (none), edge=NONE (1<<6)
+//   GSDR (dir set): 0xd401905c bit 3
+//   GPSR (out set): 0xd4019048 bit 3
+// The MFPR write needs the APBC access-key unlock (the same
+// ASFAR/ASSAR sequence PinCtrlDxe uses).
+//
+#define K3_MFPR_BASE            0xd401e000u
+#define K3_GPIO_BASE            0xd4019000u
+#define K3_APBC_ASFAR           0xd4015050u
+#define WIFI_PIN_MFPR           (K3_MFPR_BASE + 35 * 4)
+#define WIFI_PIN_MFPR_GPIO      0x440 /* func=0(GPIO) | drive=2 (live convention) | edge=NONE(1<<6) */
+#define WIFI_GPIO_GSDR          (K3_GPIO_BASE + 0x40 + 0x1C) /* group 1 dir-set */
+#define WIFI_GPIO_GPSR          (K3_GPIO_BASE + 0x40 + 0x08) /* group 1 out-set */
+#define WIFI_GPIO_BIT           BIT3
+
+//
 // A minimal I2C write-then-read using EFI_I2C_IO_PROTOCOL
 //
 STATIC
@@ -232,6 +254,28 @@ OnReadyToBoot (
   //
   MmioWrite32 (K3_APBC_BASE + APBC_TWSI8_CLK_RST, TWSI8_CLK_ENABLE);
   DEBUG ((DEBUG_INFO, "%a: TWSI8 clocks asserted (APBC+0x20 = 0x%x)\n", __func__, TWSI8_CLK_ENABLE));
+
+  //
+  // Wi-Fi enable: hold GPIO35 high for the OS handoff. The
+  // RTL8852BE's GPIO9 hw-rfkill input is wired to this pin
+  // (verified live: 35=1 -> radio enabled, 35=0 -> hard-blocked);
+  // without the hold every boot comes up radio-blocked. Do it
+  // BEFORE the OS loads so the rtw89's rfkill poll reads
+  // enabled from the first check.
+  //
+  {
+    //
+    // Remux pin 35 to GPIO (default = gmac1 int): unlock the
+    // MFPR via the APBC key, write the mux, then set the GPIO
+    // direction + output. All idempotent.
+    //
+    MmioWrite32 (K3_APBC_ASFAR, 0xBABAU);
+    MmioWrite32 (K3_APBC_ASFAR + sizeof (UINT32), 0xEB10U);
+    MmioWrite32 (WIFI_PIN_MFPR, WIFI_PIN_MFPR_GPIO);
+    MmioWrite32 (WIFI_GPIO_GSDR, WIFI_GPIO_BIT);
+    MmioWrite32 (WIFI_GPIO_GPSR, WIFI_GPIO_BIT);
+    DEBUG ((DEBUG_INFO, "%a: GPIO35 held high (wifi enable)\n", __func__));
+  }
 
   Status = LocatePmicI2cIo (&I2cIo);
   if (EFI_ERROR (Status)) {
