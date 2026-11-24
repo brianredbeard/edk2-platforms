@@ -859,7 +859,20 @@ SpiMasterVirtualNotifyEvent (
   IN VOID       *Context
   )
 {
-  EfiConvertPointer (0x0, (VOID **)&mSpiMasterInstance->QspiHost.RegisterBase);
+  /*
+   * The K3 runtime variable-write path (SetVariable -> FvbWrite ->
+   * SpiNorFlashDxe -> SpiTransfer here) failed EPERM after
+   * SetVirtualAddressMap: the 2026-11-24 live test showed the
+   * variable CREATE landing an empty store entry with every
+   * subsequent write rejected. RegisterBase is an MMIO hardware
+   * address, not a runtime-allocated pointer — converting it
+   * through EfiConvertPointer produces a garbage QSPI base at
+   * runtime (the same class as the fvb-VA bisect finding: on
+   * this near-identity-map platform, MMIO scalars must keep
+   * their physical values; see acpi-demo-k3 docs/
+   * fvb-va-bisect-2026-11-22.md). Convert only the instance
+   * pointer (a real runtime allocation).
+   */
   EfiConvertPointer (0x0, (VOID **)&mSpiMasterInstance);
   return;
 }
