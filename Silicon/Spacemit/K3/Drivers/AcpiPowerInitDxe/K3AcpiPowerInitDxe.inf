@@ -1,0 +1,43 @@
+## @file
+#  K3 ACPI power-rail boot bring-up: the ALDO3 (and future rail)
+#  deterministic handoff at ReadyToBoot. The power twin of
+#  AcpiClockInitDxe (see that driver's header for the
+#  architecture).
+##
+#  Copyright (c) 2026, SpacemiT Co., Ltd. All rights reserved.<BR>
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 1.27
+  BASE_NAME                      = K3AcpiPowerInitDxe
+  FILE_GUID                      = 8F4E9A21-3B7C-4D52-9E8A-1C0B6D3F5A47
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = K3AcpiPowerInitDxeEntryPoint
+
+[Sources]
+  K3AcpiPowerInitDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  Silicon/Spacemit/SpacemitPkg.dec
+  Silicon/Spacemit/K3/K3.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  DebugLib
+  PcdLib
+  MemoryAllocationLib
+  BaseLib
+  IoLib
+
+[Protocols]
+  gEfiI2cIoProtocolGuid                    ## CONSUMES
+
+[Guids]
+  gEfiEventReadyToBootGuid                 ## CONSUMES ## Event
+
+[Depex]
+  gEfiI2cIoProtocolGuid

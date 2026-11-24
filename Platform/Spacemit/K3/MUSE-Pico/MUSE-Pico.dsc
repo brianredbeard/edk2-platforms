@@ -418,7 +418,7 @@
 
   # I2C controller configuration
   # i2c1/i2c2 enabled, eeprom@0x50 on i2c2
-  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Num|3
+  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Num|4
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[0].ControllerId|1
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[0].BaseAddress|0xd4011000
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[0].ClockRate|100000
@@ -431,15 +431,23 @@
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[2].BaseAddress|0xd4018800
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[2].ClockRate|100000
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[2].Enable|TRUE
+  # i2c8 — the P1 PMIC bus (0xd401d800); AcpiPowerInitDxe's rail handoff
+  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[3].ControllerId|8
+  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[3].BaseAddress|0xd401d800
+  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[3].ClockRate|100000
+  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[3].Enable|TRUE
 
   # I2C slave configuration
-  gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Num|3
+  gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Num|4
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[0].BusNumber|1
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[0].SlaveAddress|0x25
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[1].BusNumber|2
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[1].SlaveAddress|0x50
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[2].BusNumber|6
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[2].SlaveAddress|0x4c
+  # the P1 PMIC (AcpiPowerInitDxe's rail handoff target)
+  gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[3].BusNumber|8
+  gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[3].SlaveAddress|0x41
 
   # EEPROM configuration (AT24C02 on i2c2@0x50)
   gSpacemitTokenSpaceGuid.PcdEepromConfigs.Num|1
@@ -912,6 +920,7 @@
   # BDS connect (DwEqosDxe, K3PcieHostBridgeLib, UsbHcdInitDxe); see the
   # mBringup[] table in the driver.
   Silicon/Spacemit/K3/Drivers/AcpiClockInitDxe/K3AcpiClockInitDxe.inf
+  Silicon/Spacemit/K3/Drivers/AcpiPowerInitDxe/K3AcpiPowerInitDxe.inf
   # Boot-time BRS conformance self-test (loud, non-fatal)
   Silicon/Spacemit/K3/Drivers/BrsCheckDxe/K3BrsCheckDxe.inf
 !elseif $(K3_OS_DTB_ENABLE) == FALSE

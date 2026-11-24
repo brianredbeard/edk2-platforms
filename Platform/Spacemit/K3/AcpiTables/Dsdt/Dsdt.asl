@@ -960,10 +960,12 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
 
 
     // ---- RPMI qualification test device (RQTS) ------------------------
-    // The device-power gate + CPPC qualification client: its own
-    // mboxes channel spec (the RCLK pattern) so the k3rpmiclient
-    // test driver owns a channel from boot instead of stealing
-    // clk-rpmi's. Rides the next DSDT-variable firmware cycle.
+    // The RPMI voltage qualification client: its own mboxes channel
+    // spec (the RCLK pattern) so the rpmi-volt test driver owns the
+    // VOLTAGE group's channel from boot instead of stealing clk-rpmi's
+    // clock channel. Channel 7 = the voltage service group (FW DT's
+    // rpmi-mpxy-voltage node, riscv,sbi-mpxy-channel-id = <7>); proto 0
+    // = RPMI. Rides the next DSDT-variable firmware cycle.
     Device (RQTS)
     {
       Name (_HID, "PRP0001")
@@ -973,7 +975,7 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
         Package () {
           Package () { "compatible", "k3,rpmi-qual-test" },
           Package () { "mboxes", Package () {
-            \_SB.MPXY, 8, 0
+            \_SB.MPXY, 7, 0
           } }
         }
       })
