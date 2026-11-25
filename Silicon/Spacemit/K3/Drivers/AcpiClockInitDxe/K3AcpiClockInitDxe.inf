@@ -1,0 +1,51 @@
+## @file
+#  K3 ACPI clock boot bring-up: idempotently enables the FIRMWARE-UNOWNED
+#  ACPI device-block clocks (TSEN, ESPI) at ReadyToBoot so the OS (which has
+#  no clock driver under ACPI) inherits a working state for blocks no UEFI
+#  driver ever connects. GMAC/PCIe/USB clocks are enabled by their UEFI
+#  device drivers during BDS connect and are deliberately not re-asserted
+#  here; see mBringup[] in the .c.
+#
+#  Copyright (c) 2026, SpacemiT Co., Ltd. All rights reserved.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = K3AcpiClockInitDxe
+  FILE_GUID                      = 9C1E3F27-6A58-4D11-8B4C-2F7A9D6E0B13
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = K3AcpiClockInitDxeEntryPoint
+
+[Sources]
+  K3AcpiClockInitDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  Silicon/Spacemit/SpacemitPkg.dec
+  Silicon/Spacemit/K3/K3.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  DebugLib
+  PcdLib
+
+[Protocols]
+  gSpacemitSiliconClockCtrlProtocolGuid   ## CONSUMES
+
+[Guids]
+  gEfiEventReadyToBootGuid                ## CONSUMES ## Event
+
+[Pcd]
+  gSpacemitK3TokenSpaceGuid.PcdGmacUseMask           ## CONSUMES
+  gSpacemitK3TokenSpaceGuid.PcdUsbHostEnableMask     ## CONSUMES
+  gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask    ## CONSUMES
+
+#
+# Clock controller + SKU selection must both be ready.
+#
+[Depex]
+  gSpacemitSiliconClockCtrlProtocolGuid AND gSpacemitK3SkuSelectDoneProtocolGuid
