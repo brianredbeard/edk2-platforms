@@ -1,0 +1,36 @@
+{
+  "source_rpm": "kernel-6.12.0-264.rv.10.el10.src.rpm",
+  "source_rpm_sha256": "471d1cb4acdc3b13d208e6a06bd99a47258d989d0991b250e5bd857eddcf6bf2",
+  "supplied_build_url": "https://riscv-rhel-koji.khw.eng.bos2.dc.redhat.com/koji/buildinfo?buildID=5449",
+  "preparation": "Extract source tarball; apply nonempty linux-kernel-test.patch as specified by kernel.spec. patch-6.12-redhat.patch is empty.",
+  "source_inputs": {
+    "linux-6.12.0-264.el10.tar.xz": "078292132c243c5b1f472e0a631c463c04cb27a7217543b3c174a9391b3c5a8e",
+    "patch-6.12-redhat.patch": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "linux-kernel-test.patch": "91e7dd33d6dd8fa8971ef2db88404402001fa9f19c3ecf4b48e2d3dbfb325af6",
+    "kernel.spec": "c9e1a322ed9492ac93f302ab1bdcab6a2d2277661d3223b4c81b2963d0f9e581"
+  },
+  "files": {
+    "arch/riscv/boot/dts/spacemit/k3-pico-itx.dts": "88239038ed7e19719d7ae1d6b48914299b6a055c836e4d763a026df0b890faa0",
+    "include/dt-bindings/gpio/gpio.h": "5423b3866877ead0920ec978b5b072f06087443033a72445b39faed8f288ddc1",
+    "arch/riscv/boot/dts/spacemit/k3.dtsi": "36989f87be09568155b5f59331b24c26d79fd6cc417ac55935254c2628a65e2a",
+    "include/dt-bindings/clock/spacemit,k3-clocks.h": "f0d277eb115979abce0d4bc7d4acd4321751e4a0b55dac2c227323ee9d657bff",
+    "include/dt-bindings/interrupt-controller/irq.h": "392400a309a54ea5b1a2ac2e52773d3ab68e07323109b9aed88a69fedc74e082",
+    "include/dt-bindings/reset/spacemit,k3-resets.h": "aebbb963897e11120cad2f1e7f354b4b0f3e98c702b7dfc8089845bdfa6053a2",
+    "include/dt-bindings/phy/phy.h": "f4221e68541c911f2d24a16473ac48530152e1956a90ba25ca232055cea1bde7",
+    "arch/riscv/boot/dts/spacemit/k3-pdma.h": "396cb19abda92ebad779694e643b8ac476d7ac6328a47facccebce8ef4832daa",
+    "arch/riscv/boot/dts/spacemit/k3-display.dtsi": "9faaf27332943ddba07305fd45e2325df57054d1fe619189ec5de7f1bc1ff508",
+    "arch/riscv/boot/dts/spacemit/k3-pinctrl.dtsi": "fe10db7a86665f436bc24a457365cad70270e35fcec9e371c9b91ba78c0dd823",
+    "LICENSES/preferred/GPL-2.0": "f6b78c087c3ebdf0f3c13415070dd480a3f35d8fc76f3d02180a407c1c812f79",
+    "LICENSES/preferred/MIT": "323c587d0ccf10e376f8bf9a7f31fb4ca6078105194b42e0b1e0ee2bc9bde71f",
+    "LICENSES/preferred/BSD-2-Clause": "6313108c23efffa36948f8b2cff1560a5935373b527b0e1a837cc77e6ed1bacd",
+    "arch/riscv/boot/dts/spacemit/k3-com260.dtsi": "b63266bce4a576dd25dba4e8ea9063a5ce5a71139217bec0b46f0646bdcd5adb",
+    "arch/riscv/boot/dts/spacemit/k3-com260-ifx.dts": "0006248a8ba7650a65291f8033f6014792778201f0cbfeb06070c662d4de10bb"
+  },
+  "expected_dtb_size": 46552,
+  "expected_dtb_sha256": "46609974206c59b2ebcc37ddfc6740c39f5f65a404c404a86322bc6b564ea55e",
+  "verified_host_dtc": "1.8.1",
+  "board_validation": {
+    "k3-pico-itx": "Payload reproduced and used in prior experimental hardware boot; replacement firmware untested",
+    "k3-com260-ifx": "Source imported; replacement payload and hardware unvalidated"
+  }
+}
