@@ -145,11 +145,11 @@
   # deb1/pico-itx: enable PCIe Port A + Port C (10G NIC, x2) + Port E
   # (Wi-Fi, x1) — ports A/C/E map to ACPI segments 0/2/4 (PCI0/PCI2/PCI4)
   gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x15
-  # pico-itx / deb1: set pin to low Voltage(1.8v)
-  gSpacemitK3TokenSpaceGuid.PcdPcieHostPinState|"lowvoltage"
   # pico-itx Port A wiring is x2 (the detect-GPIO-89 split geometry);
   # with Port B disabled the policy cannot derive it — force it.
   gSpacemitK3TokenSpaceGuid.PcdPciePortAGeometryWhenBDisabled|0x02
+  # pico-itx / deb1: set pin to low Voltage(1.8v)
+  gSpacemitK3TokenSpaceGuid.PcdPcieHostPinState|"lowvoltage"
 
   # LCD configuration: eDP@pingroup0 or DP@pingroup1
   gSpacemitTokenSpaceGuid.PcdDisplayConnectorsPriority.DisplayOrderCount|2
@@ -620,8 +620,8 @@
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].ConfigSize|0x10000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusBase|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusLimit|0xFF
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciBase|0x0
   # DT pcie4_rc I/O window (1 MiB) — same rationale as segment 2.
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciBase|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciSize|0x100000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.CpuBase|0x12C0010000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Mem.PciBase|0xC0110000

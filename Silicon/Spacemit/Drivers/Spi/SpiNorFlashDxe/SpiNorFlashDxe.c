@@ -295,7 +295,9 @@ SpiFlashWriteEnable (
   EFI_STATUS      Status;
 
   Status = SpiFlashWaitNotWelNotWip (Slave);
-  ASSERT_EFI_ERROR (Status);
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
 
   Status = SpiFlashReadWriteRegister (Slave, SPI_XFER_NO_DATA, CMD_WRITE_ENABLE, 0, NULL);
   if (EFI_ERROR (Status)) {
@@ -303,10 +305,7 @@ SpiFlashWriteEnable (
     return Status;
   }
 
-  Status = SpiFlashWaitWelNotWip (Slave);
-  ASSERT_EFI_ERROR (Status);
-
-  return EFI_SUCCESS;
+  return SpiFlashWaitWelNotWip (Slave);
 }
 
 /**
@@ -444,7 +443,9 @@ SpiFlashSetExtendedAddress (
   }
 
   Status = SpiFlashWaitNotWelNotWip (Slave);
-  ASSERT_EFI_ERROR (Status);
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
 
   return EFI_SUCCESS;
 }
@@ -529,10 +530,7 @@ SpiFlashTransferData (
       return Status;
     }
 
-    Status = SpiFlashWaitNotWelNotWip (Slave);
-    ASSERT_EFI_ERROR (Status);
-
-    return EFI_SUCCESS;
+    return SpiFlashWaitNotWelNotWip (Slave);
   }
 
   if (Direction == SPI_XFER_RX_DATA) {
@@ -572,7 +570,9 @@ SpiFlashTransferData (
       }
     } else {
       Status = SpiFlashWaitNotWip (Slave);
-      ASSERT_EFI_ERROR (Status);
+      if (EFI_ERROR (Status)) {
+        return Status;
+      }
     }
 
     Status = mSpiMasterProtocol->Transfer (mSpiMasterProtocol, Slave, &Op);
@@ -582,10 +582,14 @@ SpiFlashTransferData (
 
     if (Direction == SPI_XFER_TX_DATA) {
       Status = SpiFlashWaitNotWelNotWip (Slave);
-      ASSERT_EFI_ERROR (Status);
+      if (EFI_ERROR (Status)) {
+        return Status;
+      }
     } else {
       Status = SpiFlashWaitNotWip (Slave);
-      ASSERT_EFI_ERROR (Status);
+      if (EFI_ERROR (Status)) {
+        return Status;
+      }
     }
 
     CurrentAddress += Op.Data.Nbytes;
@@ -631,6 +635,10 @@ SpiFlashErase (
   UINT32                  EraseAddr, EraseLength;
   UINTN                   EraseSize;
   UINT8                   Cmd;
+
+  if (mSpiMasterProtocol == NULL) {
+    return EFI_DEVICE_ERROR;
+  }
 
   Instance  = SPI_FLASH_INSTANCE_FROM_THIS (This);
   Slave     = &(Instance->SpiDev);
@@ -716,6 +724,10 @@ SpiFlashRead (
   SPI_FLASH_INSTANCE      *Instance;
   SPI_DEVICE              *Slave;
 
+  if (mSpiMasterProtocol == NULL) {
+    return EFI_DEVICE_ERROR;
+  }
+
   Instance  = SPI_FLASH_INSTANCE_FROM_THIS (This);
   Slave     = &(Instance->SpiDev);
 
@@ -775,6 +787,10 @@ SpiFlashWrite (
   UINTN                   PageSize;
   UINTN                   ByteAddr, ChunkLength, ActualIndex;
   UINT32                  WriteAddr;
+
+  if (mSpiMasterProtocol == NULL) {
+    return EFI_DEVICE_ERROR;
+  }
 
   Instance  = SPI_FLASH_INSTANCE_FROM_THIS (This);
   Slave     = &(Instance->SpiDev);
@@ -1247,19 +1263,15 @@ SpiFlashVirtualNotifyEvent (
   IN VOID       *Context
   )
 {
-  //
-  // Convert mSpiMasterProtocol callbacks in SpiFlashErase and
-  // SpiFlashWrite required by runtime variable support.
-  //
-  EfiConvertPointer (0x0, (VOID **) &mSpiMasterProtocol->AjustOPSize);
-  EfiConvertPointer (0x0, (VOID **) &mSpiMasterProtocol->Transfer);
-  EfiConvertPointer (0x0, (VOID **) &mSpiMasterProtocol);
-
-  EfiConvertPointer (0x0, (VOID **) &mSpiFlashInstance->SpiDev.Info);
-  EfiConvertPointer (0x0, (VOID **) &mSpiFlashInstance->SpiDev);
-  EfiConvertPointer (0x0, (VOID **) &mSpiFlashInstance);
-
-  return;
+  // SpiDev is embedded in the instance. Only Info is a pointer within it.
+  // The public read/write/erase methods recover the instance from This.
+  if (EFI_ERROR (EfiConvertPointer (0, (VOID **)&mSpiFlashInstance->SpiDev.Info)) ||
+      EFI_ERROR (EfiConvertPointer (EFI_OPTIONAL_PTR, (VOID **)&mSpiMasterProtocol->AjustOPSize)) ||
+      EFI_ERROR (EfiConvertPointer (0, (VOID **)&mSpiMasterProtocol->Transfer)) ||
+      EFI_ERROR (EfiConvertPointer (0, (VOID **)&mSpiMasterProtocol)))
+  {
+    mSpiMasterProtocol = NULL;
+  }
 }
 
 /**

@@ -85,6 +85,7 @@ struct _FV_FLASH_INSTANCE {
   EFI_FIRMWARE_VOLUME_BLOCK2_PROTOCOL    FvbProtocol;
 
   FLASH_DEVICE_PATH                      DevicePath;
+  VOID                                   *VirtualRegionBase;
 };
 
 //
