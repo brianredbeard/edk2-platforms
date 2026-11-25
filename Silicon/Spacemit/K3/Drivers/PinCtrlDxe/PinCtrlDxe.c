@@ -55,39 +55,6 @@ STATIC BOOLEAN  mVoltageDomainConfigured = FALSE;
 
 STATIC
 CONST VOID *
-GetFdtBaseFromConfigTable (
-  VOID
-  )
-{
-  UINTN  Index;
-  VOID   *FdtBase;
-
-  if ((gST == NULL) || (gST->ConfigurationTable == NULL)) {
-    return NULL;
-  }
-
-  for (Index = 0; Index < gST->NumberOfTableEntries; Index++) {
-    if (!CompareGuid (
-                      &gST->ConfigurationTable[Index].VendorGuid,
-                      &gFdtTableGuid
-                      ))
-    {
-      continue;
-    }
-
-    FdtBase = gST->ConfigurationTable[Index].VendorTable;
-    if ((FdtBase != NULL) && (FdtCheckHeader (FdtBase) == 0)) {
-      return FdtBase;
-    }
-
-    return NULL;
-  }
-
-  return NULL;
-}
-
-STATIC
-CONST VOID *
 GetFdtBaseFromGuidHob (
   VOID
   )
@@ -103,7 +70,7 @@ GetFdtBaseFromGuidHob (
 
   FdtAddress = *((UINT64 *)GET_GUID_HOB_DATA (Hob));
   FdtBase    = (VOID *)(UINTN)FdtAddress;
-  if (FdtCheckHeader (FdtBase) != 0) {
+  if ((FdtBase == NULL) || (FdtCheckHeader (FdtBase) != 0)) {
     return NULL;
   }
 
@@ -116,13 +83,7 @@ GetRuntimeFdtBase (
   VOID
   )
 {
-  CONST VOID  *FdtBase;
-
-  FdtBase = GetFdtBaseFromConfigTable ();
-  if (FdtBase != NULL) {
-    return FdtBase;
-  }
-
+  // Pinctrl is firmware topology, independent of the OS handoff.
   return GetFdtBaseFromGuidHob ();
 }
 

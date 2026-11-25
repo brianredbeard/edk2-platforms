@@ -26,8 +26,14 @@
   DEFINE NETWORK_HTTP_BOOT_ENABLE    = TRUE
   DEFINE ACPIVIEW_ENABLE             = FALSE
   DEFINE ACPI_ENABLE                 = FALSE
+  # Experimental firmware-owned DT path: Pico-ITX and COM260 IFX only.
+  DEFINE K3_OS_DTB_ENABLE             = FALSE
 
   POSTBUILD                      = python3 Platform/Spacemit/PostBuild.py --post Platform/Spacemit/K3/MUSE-Pico/PostBuild.cfg
+
+!if $(K3_OS_DTB_ENABLE) == TRUE AND $(ACPI_ENABLE) == TRUE
+!error K3_OS_DTB_ENABLE and ACPI_ENABLE are mutually exclusive
+!endif
 
 [SkuIds]
   0|DEFAULT
@@ -47,6 +53,10 @@
   SpacemitSecLib|Silicon/Spacemit/K3/Library/SpacemitSecLib/SpacemitSecLib.inf
 
 [LibraryClasses.common]
+!if $(K3_OS_DTB_ENABLE) == TRUE
+  PlatformOsDescriptionLib|Silicon/Spacemit/K3/Library/K3OsDescriptionLib/K3OsDescriptionLib.inf
+  K3OsFdtLib|Silicon/Spacemit/K3/Library/K3OsFdtLib/K3OsFdtLib.inf
+!endif
   PlatformBootManagerLib|Silicon/Spacemit/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
   BoardPinctrlMapLib|Platform/Spacemit/K3/MUSE-Pico/Library/BoardPinctrlMapLib/BoardPinctrlMapLib.inf
 
@@ -721,7 +731,9 @@
   Silicon/Spacemit/K3/Drivers/Smbios/SmbiosTlvOverrideDxe/SmbiosTlvOverrideDxe.inf
 
   # Fix up DTB compatible for COM260 (needs SKU + platform info)
+!if $(K3_OS_DTB_ENABLE) == FALSE
   Silicon/Spacemit/K3/Drivers/CompatibleFixupDxe/CompatibleFixupDxe.inf
+!endif
 
   # eFuse read protocol
   Silicon/Spacemit/K3/Drivers/EfuseDxe/EfuseDxe.inf
@@ -858,7 +870,7 @@
   MdeModulePkg/Universal/Acpi/AcpiPlatformDxe/AcpiPlatformDxe.inf
   # ACPI tables
   Platform/Spacemit/K3/AcpiTables/K3AcpiTables.inf
-!else # ACPI_ENABLE
+!elseif $(K3_OS_DTB_ENABLE) == FALSE
   Silicon/RISC-V/ProcessorPkg/Universal/FdtDxe/FdtDxe.inf {
     <LibraryClasses>
       RiscVCpuLib|Silicon/RISC-V/ProcessorPkg/Library/RiscVCpuLib/RiscVCpuLib.inf
@@ -875,6 +887,13 @@
 
   # Device tree for K3
   Platform/Spacemit/K3/DeviceTree/K3DeviceTree.inf
+!if $(K3_OS_DTB_ENABLE) == TRUE
+  Platform/Spacemit/K3/DeviceTree/Os/K3OsDeviceTree.inf
+  Silicon/Spacemit/K3/Drivers/K3OsFdtDxe/K3OsFdtDxe.inf {
+    <LibraryClasses>
+      FdtLib|EmbeddedPkg/Library/FdtLib/FdtLib.inf
+  }
+!endif
 
   # FDT fixup protocol
   Silicon/Spacemit/Drivers/FdtFixupDxe/FdtFixupDxe.inf {
