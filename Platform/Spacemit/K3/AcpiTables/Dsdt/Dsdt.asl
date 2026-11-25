@@ -822,6 +822,40 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "SPMT  ", "K3", EFI_ACPI_OEM_REVISI
     // 0x84000000 PR aperture; EC IRQ = GPIO bank1 pin11 (ACPI pin 43,
     // rising edge); EC PWM provider (google,cros-ec-pwm) as an EC child;
     // board-level pwm-fan consuming EC PWM channel 0.
+    // ---- I2C controller 8 (the P1 PMIC bus) ----------------------------
+    // i2c8 @ 0xd401d800 (DW I2C, TWSI8): the bus the firmware's
+    // AcpiPowerInitDxe uses for the ALDO3 rail handoff (the i2c8
+    // controller PCD + the PMIC slave 0x41). The TWSI8 function/bus
+    // clock gates are asserted by firmware at ReadyToBoot (the
+    // write-only APBC+0x20 register); the OS i2c-k1 driver binds via
+    // the optional-clock path (kernel patch 900012). Declared for
+    // OS-side bus access (i2c-tools, future PMIC consumers) - no
+    // child devices: the PMIC rail control runs through the RPMI
+    // voltage service (RQTS) instead.
+    Device (I2C8)
+    {
+      Name (_HID, "PRP0001")
+      Name (_UID, 0x61)
+      Name (_CCA, 0)
+      Name (_CRS, ResourceTemplate ()
+      {
+        QWordMemory (
+          ResourceConsumer, PosDecode, MinFixed, MaxFixed,
+          NonCacheable, ReadWrite,
+          0x0, 0xD401D800, 0xD401D837, 0x0, 0x38
+        )
+        Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) { 19 }
+      })
+      Name (_DSD, Package () {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package () {
+          Package () { "compatible", "spacemit,k1-i2c" },
+          Package () { "clock-frequency", 400000 },
+          Package () { "spacemit,func-clock-rate", 31500000 },
+        }
+      })
+    }
+
     Device (ESPI)
     {
       Name (_HID, "PRP0001")
