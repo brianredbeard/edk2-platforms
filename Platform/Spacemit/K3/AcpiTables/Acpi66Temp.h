@@ -145,6 +145,14 @@ typedef struct {
     HartIndexBits, GroupIndexBits, GroupIndexShift                             \
   }
 
+/*
+ * HardwareId is a UINT8 HwId[8] ("NNNN####" ACPI ID). Macro arguments
+ * cannot contain unparenthesized commas, so callers pass the 8 ASCII
+ * bytes through LIST_8(); e.g.
+ *   LIST_8 ('S','P','M','T','0','0','0','1')
+ */
+#define ACPI_HWID_LIST_8(a, b, c, d, e, f, g, h)  { a, b, c, d, e, f, g, h }
+
 #define EFI_ACPI_6_6_APLIC_STRUCTURE_INIT(AplicId, HardwareId, NumIdcs,     \
     NumExtIntSources, GsiBase, AplicAddress, AplicSize)                     \
   {                                                                         \

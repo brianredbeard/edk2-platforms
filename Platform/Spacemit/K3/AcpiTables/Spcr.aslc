@@ -126,8 +126,11 @@ STATIC EFI_ACPI_SERIAL_PORT_CONSOLE_REDIRECTION_TABLE_4_WITH_NAMESPACE_STRING  S
     0,      // PC-AT-compatible IRQ, valid only if bit[0] of InterruptType is set.
     // UINT32   GlobalSystemInterrupt;
     UART_GSI_NUM,
-    // UINT8  BaudRate; set to zero means use config as is
-    0,      // Use PreciseBaudRate (see below) as the baud rate instead.
+    // UINT8  BaudRate;
+    // PreciseBaudRate below is not populated, so this must carry the
+    // real rate: 6.12's spcr.c treats 0 as "already configured by
+    // firmware" and programs no divisor.
+    EFI_ACPI_SERIAL_PORT_CONSOLE_REDIRECTION_TABLE_BAUD_RATE_115200,
     // UINT8  Parity;
     EFI_ACPI_SERIAL_PORT_CONSOLE_REDIRECTION_TABLE_PARITY_NO_PARITY,
     // UINT8  StopBits;
@@ -154,7 +157,7 @@ STATIC EFI_ACPI_SERIAL_PORT_CONSOLE_REDIRECTION_TABLE_4_WITH_NAMESPACE_STRING  S
     0x00,
     // UINT32   UartClockFrequency;
     /* FixedPcdGet32 (PcdUartSystemClockRate), */
-    14750000,
+    14745600,   // UART input clock; matches uart0 clock-frequency in K3.dtsi
     // UINT32   PreciseBaudRate; set zero means use BaudRate instead
     0,
     // UINT16   NameSpaceStrLength;

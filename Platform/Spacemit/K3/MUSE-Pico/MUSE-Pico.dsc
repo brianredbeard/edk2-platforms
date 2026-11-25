@@ -279,11 +279,10 @@
   #   bit0 (0x01) = progress codes  -> prints "PROGRESS CODE: V... I..." on serial
   #   bit1 (0x02) = error codes     -> prints "ERROR: C...:V... I..." on serial
   #   bit2 (0x04) = debug codes     -> routes DEBUG() output through status code
-!if $(TARGET) == RELEASE
+  # Progress codes are pure noise on the serial console (one line per firmware
+  # event; ~50 lines per boot, interleaved with GRUB menu redraws) and consume
+  # the GRUB menu timeout at 115200 baud. Keep them off in DEBUG builds too.
   gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x02
-!else
-  gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x07
-!endif
 
   gSpacemitK3TokenSpaceGuid.PcdSpacemitMPMURegBase|0xd4050000
   gSpacemitK3TokenSpaceGuid.PcdSpacemitAPMURegBase|0xd4282800
@@ -697,7 +696,17 @@
 
 !if $(ACPI_ENABLE) == TRUE
   gEfiMdeModulePkgTokenSpaceGuid.PcdAcpiExposedTableVersions|0x20
+  # ACPI SDT protocol (walk/patch installed tables), for table tooling
+  # and future consumers.
+  gEfiMdeModulePkgTokenSpaceGuid.PcdInstallAcpiSdtProtocol|TRUE
   # definition of X100
+  # ACPI describes ONLY the 8 X100 (rv64imafdcvh) harts in clusters C0/C1.
+  # The 8 A100 harts (CPU8-15, rv64imafdcv, no h/v) are NOT ACPI-described:
+  # all qualified ACPI evidence (MADT/RHCT/PPTT/Cpu.asl/DSDT) covers 8 CPUs,
+  # and exposing 16 would require A100 MADT/RHCT/PPTT/processor objects plus
+  # an AIA topology decision. A100 harts remain usable only via DT boots.
+  # PcdHartCount (16) is NOT consumed by any ACPI table; do not "fix" it to
+  # match without first deciding the A100 contract.
   gSpacemitK3TokenSpaceGuid.PcdX100HartCount|0x8
 
 !endif # ACPI_ENABLE

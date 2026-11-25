@@ -58,6 +58,27 @@ STATIC CONST CLOCK_CONFIG  ModuleConfig[] = {
     }
   },
   {
+    "TSEN", 0x17BB00D7, 2,
+    NULL,
+    {
+      { K3_TSEN_CLK_RES_CTRL,  BIT0 | BIT1,           BIT0 | BIT1,           0     },
+      { K3_TSEN_CLK_RES_CTRL,  BIT2,                  0,                     BIT2  }
+    }
+  },
+  {
+    // ESPI: APMU 0x240. NOTE the reset bits are ACTIVE LOW (1 = release),
+    // unlike most other APMU gates: bits [3:0] = SCLK_EN, SCLK_RST#,
+    // MCLK_EN, MCLK_RST#. Enable = all four set (0xF). The SCLK source
+    // mux (bits [7:4]) is left in its boot state; the eSPI driver
+    // programs the operating frequency through the controller's own
+    // registers when the override bit is clear.
+    "ESPI", 0x56CF439A, 1,
+    NULL,
+    {
+      { K3_ESPI_CLK_RES_CTRL,  BIT0 | BIT1 | BIT2 | BIT3, BIT0 | BIT1 | BIT2 | BIT3, 0 }
+    }
+  },
+  {
     "QSPI", 0x89B48352, 2,
     &QspiClockRateOps,
     {
@@ -109,14 +130,14 @@ STATIC CONST CLOCK_CONFIG  ModuleConfig[] = {
     }
   },
   {
-    "GMAC0_TX", 0x945D2BCE, 2,
+    "GMAC0_TX", 0x945D2BCE, 1,
     NULL,
     {
       { K3_EMAC0_CLK_RES_CTRL, BIT8,                  BIT8,                  0     },
     }
   },
   {
-    "GMAC0_PHY", 0xF1360ECC, 2,
+    "GMAC0_PHY", 0xF1360ECC, 1,
     NULL,
     {
       { K3_EMAC0_CLK_RES_CTRL, BIT14,                 0,                     BIT14 },
@@ -131,17 +152,17 @@ STATIC CONST CLOCK_CONFIG  ModuleConfig[] = {
     }
   },
   {
-    "GMAC1_TX", 0x2CE14CAB, 2,
+    "GMAC1_TX", 0x2CE14CAB, 1,
     NULL,
     {
-      { K3_EMAC0_CLK_RES_CTRL, BIT8,                  BIT8,                  0     },
+      { K3_EMAC1_CLK_RES_CTRL, BIT8,                  BIT8,                  0     },
     }
   },
   {
-    "GMAC1_PHY", 0xCC56277C, 2,
+    "GMAC1_PHY", 0xCC56277C, 1,
     NULL,
     {
-      { K3_EMAC0_CLK_RES_CTRL, BIT14,                 0,                     BIT14 },
+      { K3_EMAC1_CLK_RES_CTRL, BIT14,                 0,                     BIT14 },
     }
   },
   {
@@ -153,17 +174,17 @@ STATIC CONST CLOCK_CONFIG  ModuleConfig[] = {
     }
   },
   {
-    "GMAC2_TX", 0x3E54E345, 2,
+    "GMAC2_TX", 0x3E54E345, 1,
     NULL,
     {
-      { K3_EMAC0_CLK_RES_CTRL, BIT8,                  BIT8,                  0     },
+      { K3_EMAC2_CLK_RES_CTRL, BIT8,                  BIT8,                  0     },
     }
   },
   {
-    "GMAC2_PHY", 0x8BF65DAC, 2,
+    "GMAC2_PHY", 0x8BF65DAC, 1,
     NULL,
     {
-      { K3_EMAC0_CLK_RES_CTRL, BIT14,                 0,                     BIT14 },
+      { K3_EMAC2_CLK_RES_CTRL, BIT14,                 0,                     BIT14 },
     }
   },
   {
@@ -439,20 +460,42 @@ GetCurrentClockState (
 }
 
 STATIC
-VOID
+BOOLEAN
 EnableClock (
   IN  UINT32  Index
   )
 {
   UINT32  I;
+  BOOLEAN AllRowsProgrammed = TRUE;
 
   for (I = 0; I < ModuleConfig[Index].ConfigNum; I++) {
+    /*
+     * Guard against table bugs: an entry whose ConfigNum exceeds its
+     * defined rows reads zero-filled config, and a zero RegAddr write
+     * resets the SoC (observed with the GMAC*_TX/PHY rows before their
+     * ConfigNum was corrected). Never touch address 0. A skipped row
+     * means the clock is NOT enabled: report failure so the caller does
+     * not mark state or claim success for a programming it did not do
+     * (the historical behavior silently reported success).
+     */
+    if (ModuleConfig[Index].Config[I].RegAddr == 0) {
+      DEBUG ((
+        DEBUG_ERROR,
+        "%a: %a config[%u] has zero register address\n",
+        __func__, ModuleConfig[Index].ClockName, I
+        ));
+      AllRowsProgrammed = FALSE;
+      continue;
+    }
+
     MmioAndThenOr32 (
                      ModuleConfig[Index].Config[I].RegAddr,
                      ~ModuleConfig[Index].Config[I].RegValMask,
                      ModuleConfig[Index].Config[I].RegValEnable
                      );
   }
+
+  return AllRowsProgrammed;
 }
 
 STATIC
@@ -464,6 +507,10 @@ DisableClock (
   UINT32  I;
 
   for (I = 0; I < ModuleConfig[Index].ConfigNum; I++) {
+    if (ModuleConfig[Index].Config[I].RegAddr == 0) {
+      continue;
+    }
+
     MmioAndThenOr32 (
                      ModuleConfig[Index].Config[I].RegAddr,
                      ~ModuleConfig[Index].Config[I].RegValMask,
@@ -490,7 +537,10 @@ SetClockState (
   ClockCtrlInstance = CLOCKCTRL_INSTANCE_FROM_THIS (This);
 
   if (ENABLE_CLOCK == ClockState) {
-    EnableClock (Index);
+    if (!EnableClock (Index)) {
+      return EFI_DEVICE_ERROR;
+    }
+
     ClockCtrlInstance->State[Index / 64] |= 1UL << (Index % 64);
   } else {
     DisableClock (Index);

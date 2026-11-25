@@ -32,6 +32,5 @@
   Silicon/Spacemit/K3/K3.dec
 
 [Pcd]
-  gUefiRiscVPlatformPkgTokenSpaceGuid.PcdHartCount             ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuCoreCrystalClockFrequency    ## CONSUMES
   gSpacemitK3TokenSpaceGuid.PcdX100HartCount                   ## CONSUMES
