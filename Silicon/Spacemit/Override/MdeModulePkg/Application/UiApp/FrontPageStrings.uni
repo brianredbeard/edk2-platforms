@@ -44,3 +44,10 @@
 #string STR_POPUP_SAVE_AND_EXIT_MESSAGE       #language en-US "Save configuration changes and exit?"
 #string STR_POPUP_DISCARD_AND_EXIT_MESSAGE    #language en-US "Discard configuration changes and exit?"
 #string STR_POPUP_CONFIRM_OPTIONS             #language en-US "Press 'Y' to confirm, 'N'/'ESC' to ignore."
+
+#string STR_PLATFORM_INFO_SECTION              #language en-US "System Information"
+#string STR_PLATFORM_INFO_BIOS                 #language en-US ""
+#string STR_PLATFORM_INFO_BOARD                #language en-US ""
+#string STR_PLATFORM_INFO_SERIAL               #language en-US ""
+#string STR_PLATFORM_INFO_CPU                  #language en-US ""
+#string STR_PLATFORM_INFO_MEM                  #language en-US ""

@@ -45,6 +45,12 @@ UiCustomizeFrontPage (
   //
   UiCreateLanguageMenu (HiiHandle, StartOpCodeHandle);
 
+  //
+  // System Information section (values from the installed
+  // SMBIOS tables — the same source the OS reads).
+  //
+  UiCreatePlatformInfoSection (HiiHandle, StartOpCodeHandle);
+
   return;
 }
 
