@@ -13,7 +13,18 @@
 // TODO: Fix this file after ACPI 6.6 released
 #include <Acpi66Temp.h>
 
-#define ISA_STRING         "rv64imafdcvh_ssaia_smaia_sscofpmf_svpbmt_sstc_smstateen_zicbom_zicboz"
+/*
+ * Complete X100 ISA string from K3Cpus.dtsi. Under ACPI the kernel does
+ * NOT imply zicsr/zifencei/zicntr/zihpm from the base letters (unlike
+ * DT), so every implemented extension must be listed explicitly; a
+ * missing name silently drops the corresponding HWCAP bit and
+ * userspace/perf capability. CPU0-7 (X100) carry the hypervisor and
+ * vector-crypto sets; CPU8-15 (A100, not ACPI-described) lack h/v.
+ */
+#define ISA_STRING         "rv64imafdcvh_zicbom_zicboz_zicntr_zicond_zicsr_zifencei_zihintpause_zihpm_zfh_zfhmin_zba_zbb_zbc_zbs_zkt_zvbb_zvbc_zvfh_zvfhmin_zvkb_zvkg_zvkn_zvknc_zvkned_zvkng_zvknha_zvknhb_zvks_zvksc_zvksed_zvksg_zvksh_zvkt_ssaia_sscofpmf_sstc_svinval_svnapot_svpbmt_smstateen"
+// Extension set is IDENTICAL to K3Cpus.dtsi; only the order changed to
+// canonical (UABI: Z-category IMAFDQLCBKJTPVH then alphabetical, S
+// alphabetical, Sm last). The previous string had zvksg before zvksh.
 #define ISA_STRING_LENGTH  (sizeof(ISA_STRING) / sizeof(CHAR8))
 
 #define HART_INFO_NODE_NUM_OFFSETS  3    // IsaStringNode + CmoNode + MmuNode
@@ -197,6 +208,12 @@ STATIC EFI_ACPI_RISCV_HART_CAPABILITIES_TABLE  Rhct = {
   }
 };
 
+// Hart-info array is sized by PcdX100HartCount but initialized with explicit
+// CPU0-7 entries; a mismatch would silently emit zero-filled nodes.
+STATIC_ASSERT (
+  FixedPcdGet32 (PcdX100HartCount) == 8,
+  "Rhct.aslc carries 8 explicit hart-info initializers; update them with the PCD"
+  );
 // Reference the table being generated to prevent the optimizer
 // from removing the data structure from the executable
 VOID *CONST  ReferenceAcpiTable = &Rhct;

@@ -877,7 +877,17 @@ SpacemitAssertReset (
     return EFI_INVALID_PARAMETER;
   }
 
-  EqosClockDisable (Priv, Priv->BusClkAndRstName);
+  //
+  // Do NOT disable the EMAC bus clock here. This "reset" is invoked from
+  // EqosStop() when the EFI network stack is torn down at ExitBootServices,
+  // and gating the bus clock makes the MAC MMIO region stop responding: an
+  // ACPI OS without a clock provider (the clock is owned by firmware) wedges
+  // the bus on the first register access. Firmware owns the clocks and must
+  // leave the device usable for the OS it boots.
+  //
+  // The Linux dwmac-spacemit driver re-programming the MAC (reset, DMA
+  // reinit) does not require the clock to be toggled.
+  //
 
   return EFI_SUCCESS;
 }
