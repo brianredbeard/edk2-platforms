@@ -478,6 +478,28 @@ InitializePciHostBridge (
   ResourceAssigned = FALSE;
 
   //
+  // K3: PCI I/O apertures are memory-mapped at translated host addresses
+  // (e.g. 0x1200010000), outside the default GCD I/O space map [0, 0xFFFF].
+  // AddIoSpace() intersects against existing GCD descriptors — without a
+  // covering descriptor it adds NOTHING (silently in RELEASE; an assert in
+  // DEBUG at the coverage walk), and later resource allocation finds no
+  // registered I/O space at all: enumeration aborts with zero PciIo handles
+  // (rhct11-wifi bisect, 2026-11-22). Pre-register each translated I/O
+  // aperture in GCD so the intersection succeeds.
+  //
+  for (Index = 0; Index < RootBridgeCount; Index++) {
+    if (RootBridges[Index].Io.Base <= RootBridges[Index].Io.Limit) {
+      UINT64  IoHostBase = TO_HOST_ADDRESS (
+                             RootBridges[Index].Io.Base,
+                             RootBridges[Index].Io.Translation
+                             );
+      UINT64  IoHostLen  = RootBridges[Index].Io.Limit - RootBridges[Index].Io.Base + 1;
+
+      gDS->AddIoSpace (EfiGcdIoTypeIo, IoHostBase, IoHostLen);
+    }
+  }
+
+  //
   // Create Root Bridge Device Handle in this Host Bridge
   //
   for (Index = 0; Index < RootBridgeCount; Index++) {

@@ -142,10 +142,14 @@
   gSpacemitK3TokenSpaceGuid.PcdUsbHostEnableMask|0x19
   # pico-itx / deb1: limit controllers 0,1,2,4 to HS (bit set = HS-only)
   gSpacemitK3TokenSpaceGuid.PcdUsbHostHsOnlyMask|0x17
-  # deb1: enable PCIe Port A + Port B (runtime split by GPIO detection)
-  gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x03
+  # deb1/pico-itx: enable PCIe Port A + Port C (10G NIC, x2) + Port E
+  # (Wi-Fi, x1) — ports A/C/E map to ACPI segments 0/2/4 (PCI0/PCI2/PCI4)
+  gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x15
   # pico-itx / deb1: set pin to low Voltage(1.8v)
   gSpacemitK3TokenSpaceGuid.PcdPcieHostPinState|"lowvoltage"
+  # pico-itx Port A wiring is x2 (the detect-GPIO-89 split geometry);
+  # with Port B disabled the policy cannot derive it — force it.
+  gSpacemitK3TokenSpaceGuid.PcdPciePortAGeometryWhenBDisabled|0x02
 
   # LCD configuration: eDP@pingroup0 or DP@pingroup1
   gSpacemitTokenSpaceGuid.PcdDisplayConnectorsPriority.DisplayOrderCount|2
@@ -189,6 +193,9 @@
   gSpacemitK3TokenSpaceGuid.PcdUsbHostHsOnlyMask|0x10
   # enable PCIe Port A (x4, WiFi) + Port E (pcie4_rc, phy5)
   gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x11
+  # FML13V05 Port A wiring is x4 — pin it (the split-derived x2
+  # would mis-train the Wi-Fi link).
+  gSpacemitK3TokenSpaceGuid.PcdPciePortAGeometryWhenBDisabled|0x04
 
   # LCD configuration: eDP internal panel + DP1 via Type-C PortD (ANX7447)
   gSpacemitTokenSpaceGuid.PcdDisplayConnectorsPriority.DisplayOrderCount|2
@@ -270,7 +277,7 @@
 
   # For MMU type >= sv39, the width of physical address is 56-bit.
   gSpacemitTokenSpaceGuid.PcdMemoryAddressWidthMax|56
-  gSpacemitTokenSpaceGuid.PcdIoAddressWidthMax|32
+  gSpacemitTokenSpaceGuid.PcdIoAddressWidthMax|40
 
   # for QSPI controller in K3, Spi flash is map to address below
   gSpacemitTokenSpaceGuid.PcdSFMemMapBaseAddress|0xB8000000
@@ -554,9 +561,12 @@
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].ConfigSize|0x10000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].BusBase|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].BusLimit|0xFF
+  # DT pcie2_rc I/O window (1 MiB): Realtek endpoints request 256-byte
+  # I/O BARs; a zero I/O aperture is a fatal PciBusDxe resource conflict
+  # (rhct11-wifi bisect: Out Of Resource → root torn down → NVMe lost).
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciBase|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciSize|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.CpuBase|0x0
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciSize|0x100000
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.CpuBase|0x1200010000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Mem.PciBase|0x00110000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Mem.PciSize|0x7FEF0000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Mem.CpuBase|0x1200110000
@@ -611,8 +621,9 @@
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusBase|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusLimit|0xFF
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciBase|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciSize|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.CpuBase|0x0
+  # DT pcie4_rc I/O window (1 MiB) — same rationale as segment 2.
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciSize|0x100000
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.CpuBase|0x12C0010000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Mem.PciBase|0xC0110000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Mem.PciSize|0x3FEF0000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Mem.CpuBase|0x12C0110000
