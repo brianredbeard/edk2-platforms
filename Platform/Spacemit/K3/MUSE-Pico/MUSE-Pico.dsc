@@ -26,8 +26,14 @@
   DEFINE NETWORK_HTTP_BOOT_ENABLE    = TRUE
   DEFINE ACPIVIEW_ENABLE             = FALSE
   DEFINE ACPI_ENABLE                 = FALSE
+  # Experimental firmware-owned DT path: Pico-ITX and COM260 IFX only.
+  DEFINE K3_OS_DTB_ENABLE             = FALSE
 
   POSTBUILD                      = python3 Platform/Spacemit/PostBuild.py --post Platform/Spacemit/K3/MUSE-Pico/PostBuild.cfg
+
+!if $(K3_OS_DTB_ENABLE) == TRUE AND $(ACPI_ENABLE) == TRUE
+!error K3_OS_DTB_ENABLE and ACPI_ENABLE are mutually exclusive
+!endif
 
 [SkuIds]
   0|DEFAULT
@@ -47,6 +53,10 @@
   SpacemitSecLib|Silicon/Spacemit/K3/Library/SpacemitSecLib/SpacemitSecLib.inf
 
 [LibraryClasses.common]
+!if $(K3_OS_DTB_ENABLE) == TRUE
+  PlatformOsDescriptionLib|Silicon/Spacemit/K3/Library/K3OsDescriptionLib/K3OsDescriptionLib.inf
+  K3OsFdtLib|Silicon/Spacemit/K3/Library/K3OsFdtLib/K3OsFdtLib.inf
+!endif
   PlatformBootManagerLib|Silicon/Spacemit/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
   BoardPinctrlMapLib|Platform/Spacemit/K3/MUSE-Pico/Library/BoardPinctrlMapLib/BoardPinctrlMapLib.inf
 
@@ -101,11 +111,22 @@
   gSpacemitTokenSpaceGuid.PcdSmbiosSystemSerialNumber|L"Unknown"
   gSpacemitTokenSpaceGuid.PcdSmbiosSystemSKU|L"MPK3"
   gSpacemitTokenSpaceGuid.PcdSmbiosSystemFamily|L"K3"
+  # Chassis Type: Main Server Chassis (0x11) — matches the vendor's Type3
+  # data-file intent; the PCD overrides the data (PcdSmbiosClassisType .dec
+  # default is 0 = out-of-spec, fwts DMIValueOutOfRange).
+  gSpacemitTokenSpaceGuid.PcdSmbiosClassisType|0x11
+  gSpacemitTokenSpaceGuid.PcdSmbiosClassisHeight|1
   gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardManufacturer|L"SpacemiT"
   gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardProductName|L"k3-pico-itx"
   gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardVersion|L"MPK3"
   gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardSerialNumber|L"Unknown"
+  gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardAssertTag|L"MPK3"
+  gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardChassisLocation|L"Main"
+  gSpacemitTokenSpaceGuid.PcdSmbiosSystemVersion|L"1.0"
+  gSpacemitTokenSpaceGuid.PcdSmbiosClassisManufacturer|L"SpacemiT"
+  gSpacemitTokenSpaceGuid.PcdSmbiosClassisVersion|L"MPK3"
   gSpacemitTokenSpaceGuid.PcdSmbiosClassisSerialNumber|L"Unknown"
+  gSpacemitTokenSpaceGuid.PcdSmbiosClassisAssertTag|L"MPK3"
 
 [PcdsDynamicExDefault.common.DEFAULT]
 !if $(CAPSULE_ENABLE)
@@ -121,8 +142,12 @@
   gSpacemitK3TokenSpaceGuid.PcdUsbHostEnableMask|0x19
   # pico-itx / deb1: limit controllers 0,1,2,4 to HS (bit set = HS-only)
   gSpacemitK3TokenSpaceGuid.PcdUsbHostHsOnlyMask|0x17
-  # deb1: enable PCIe Port A + Port B (runtime split by GPIO detection)
-  gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x03
+  # deb1/pico-itx: enable PCIe Port A + Port C (10G NIC, x2) + Port E
+  # (Wi-Fi, x1) — ports A/C/E map to ACPI segments 0/2/4 (PCI0/PCI2/PCI4)
+  gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x15
+  # pico-itx Port A wiring is x2 (the detect-GPIO-89 split geometry);
+  # with Port B disabled the policy cannot derive it — force it.
+  gSpacemitK3TokenSpaceGuid.PcdPciePortAGeometryWhenBDisabled|0x02
   # pico-itx / deb1: set pin to low Voltage(1.8v)
   gSpacemitK3TokenSpaceGuid.PcdPcieHostPinState|"lowvoltage"
 
@@ -168,6 +193,9 @@
   gSpacemitK3TokenSpaceGuid.PcdUsbHostHsOnlyMask|0x10
   # enable PCIe Port A (x4, WiFi) + Port E (pcie4_rc, phy5)
   gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x11
+  # FML13V05 Port A wiring is x4 — pin it (the split-derived x2
+  # would mis-train the Wi-Fi link).
+  gSpacemitK3TokenSpaceGuid.PcdPciePortAGeometryWhenBDisabled|0x04
 
   # LCD configuration: eDP internal panel + DP1 via Type-C PortD (ANX7447)
   gSpacemitTokenSpaceGuid.PcdDisplayConnectorsPriority.DisplayOrderCount|2
@@ -249,7 +277,7 @@
 
   # For MMU type >= sv39, the width of physical address is 56-bit.
   gSpacemitTokenSpaceGuid.PcdMemoryAddressWidthMax|56
-  gSpacemitTokenSpaceGuid.PcdIoAddressWidthMax|32
+  gSpacemitTokenSpaceGuid.PcdIoAddressWidthMax|40
 
   # for QSPI controller in K3, Spi flash is map to address below
   gSpacemitTokenSpaceGuid.PcdSFMemMapBaseAddress|0xB8000000
@@ -258,11 +286,10 @@
   #   bit0 (0x01) = progress codes  -> prints "PROGRESS CODE: V... I..." on serial
   #   bit1 (0x02) = error codes     -> prints "ERROR: C...:V... I..." on serial
   #   bit2 (0x04) = debug codes     -> routes DEBUG() output through status code
-!if $(TARGET) == RELEASE
+  # Progress codes are pure noise on the serial console (one line per firmware
+  # event; ~50 lines per boot, interleaved with GRUB menu redraws) and consume
+  # the GRUB menu timeout at 115200 baud. Keep them off in DEBUG builds too.
   gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x02
-!else
-  gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x07
-!endif
 
   gSpacemitK3TokenSpaceGuid.PcdSpacemitMPMURegBase|0xd4050000
   gSpacemitK3TokenSpaceGuid.PcdSpacemitAPMURegBase|0xd4282800
@@ -391,7 +418,7 @@
 
   # I2C controller configuration
   # i2c1/i2c2 enabled, eeprom@0x50 on i2c2
-  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Num|3
+  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Num|4
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[0].ControllerId|1
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[0].BaseAddress|0xd4011000
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[0].ClockRate|100000
@@ -404,15 +431,23 @@
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[2].BaseAddress|0xd4018800
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[2].ClockRate|100000
   gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[2].Enable|TRUE
+  # i2c8 — the P1 PMIC bus (0xd401d800); AcpiPowerInitDxe's rail handoff
+  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[3].ControllerId|8
+  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[3].BaseAddress|0xd401d800
+  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[3].ClockRate|100000
+  gSpacemitTokenSpaceGuid.PcdI2cControllerConfigs.Data[3].Enable|TRUE
 
   # I2C slave configuration
-  gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Num|3
+  gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Num|4
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[0].BusNumber|1
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[0].SlaveAddress|0x25
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[1].BusNumber|2
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[1].SlaveAddress|0x50
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[2].BusNumber|6
   gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[2].SlaveAddress|0x4c
+  # the P1 PMIC (AcpiPowerInitDxe's rail handoff target)
+  gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[3].BusNumber|8
+  gSpacemitTokenSpaceGuid.PcdI2cSlaveConfig.Data[3].SlaveAddress|0x41
 
   # EEPROM configuration (AT24C02 on i2c2@0x50)
   gSpacemitTokenSpaceGuid.PcdEepromConfigs.Num|1
@@ -526,9 +561,12 @@
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].ConfigSize|0x10000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].BusBase|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].BusLimit|0xFF
+  # DT pcie2_rc I/O window (1 MiB): Realtek endpoints request 256-byte
+  # I/O BARs; a zero I/O aperture is a fatal PciBusDxe resource conflict
+  # (rhct11-wifi bisect: Out Of Resource → root torn down → NVMe lost).
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciBase|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciSize|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.CpuBase|0x0
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.PciSize|0x100000
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Io.CpuBase|0x1200010000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Mem.PciBase|0x00110000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Mem.PciSize|0x7FEF0000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[2].Mem.CpuBase|0x1200110000
@@ -582,9 +620,10 @@
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].ConfigSize|0x10000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusBase|0x0
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].BusLimit|0xFF
+  # DT pcie4_rc I/O window (1 MiB) — same rationale as segment 2.
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciBase|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciSize|0x0
-  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.CpuBase|0x0
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.PciSize|0x100000
+  gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Io.CpuBase|0x12C0010000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Mem.PciBase|0xC0110000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Mem.PciSize|0x3FEF0000
   gSpacemitTokenSpaceGuid.PcdBoardPciRootBridgeResourceConfigTable.ArrayData[4].Mem.CpuBase|0x12C0110000
@@ -676,7 +715,19 @@
 
 !if $(ACPI_ENABLE) == TRUE
   gEfiMdeModulePkgTokenSpaceGuid.PcdAcpiExposedTableVersions|0x20
+  # ACPI SDT protocol (walk/patch installed tables). Historical note: this
+  # was set for K3AcpiNvsDxe, which is NOT in the DSC/FDF components — the
+  # PCC power model is intentionally unwired (see the PCC drafts commit).
+  # The SDT protocol is kept installed for table tooling/future consumers.
+  gEfiMdeModulePkgTokenSpaceGuid.PcdInstallAcpiSdtProtocol|TRUE
   # definition of X100
+  # ACPI describes ONLY the 8 X100 (rv64imafdcvh) harts in clusters C0/C1.
+  # The 8 A100 harts (CPU8-15, rv64imafdcv, no h/v) are NOT ACPI-described:
+  # all qualified ACPI evidence (MADT/RHCT/PPTT/Cpu.asl/DSDT) covers 8 CPUs,
+  # and exposing 16 would require A100 MADT/RHCT/PPTT/processor objects plus
+  # an AIA topology decision. A100 harts remain usable only via DT boots.
+  # PcdHartCount (16) is NOT consumed by any ACPI table; do not "fix" it to
+  # match without first deciding the A100 contract.
   gSpacemitK3TokenSpaceGuid.PcdX100HartCount|0x8
 
 !endif # ACPI_ENABLE
@@ -721,7 +772,9 @@
   Silicon/Spacemit/K3/Drivers/Smbios/SmbiosTlvOverrideDxe/SmbiosTlvOverrideDxe.inf
 
   # Fix up DTB compatible for COM260 (needs SKU + platform info)
+!if $(K3_OS_DTB_ENABLE) == FALSE
   Silicon/Spacemit/K3/Drivers/CompatibleFixupDxe/CompatibleFixupDxe.inf
+!endif
 
   # eFuse read protocol
   Silicon/Spacemit/K3/Drivers/EfuseDxe/EfuseDxe.inf
@@ -836,8 +889,10 @@
   }
 !endif
 
-  # UiApp
-  MdeModulePkg/Application/UiApp/UiApp.inf {
+  # UiApp — the Spacemit override copy (PACKAGES_PATH resolves the
+  # SDK copy first; the override needs the explicit path, like
+  # NonDiscoverablePciDeviceDxe below)
+  Silicon/Spacemit/Override/MdeModulePkg/Application/UiApp/UiApp.inf {
     <LibraryClasses>
       NULL|Silicon/Spacemit/Library/PlatformUiLib/PlatformManagerUiLib.inf
       NULL|MdeModulePkg/Library/DeviceManagerUiLib/DeviceManagerUiLib.inf
@@ -858,7 +913,17 @@
   MdeModulePkg/Universal/Acpi/AcpiPlatformDxe/AcpiPlatformDxe.inf
   # ACPI tables
   Platform/Spacemit/K3/AcpiTables/K3AcpiTables.inf
-!else # ACPI_ENABLE
+  # Deterministic clock bring-up at ReadyToBoot for the FIRMWARE-UNOWNED
+  # ACPI device blocks (TSEN, ESPI): blocks no UEFI driver ever connects,
+  # so nothing else leaves them clocked for the OS. GMAC/PCIe/USB are NOT
+  # covered here — their UEFI device drivers enable their clocks during
+  # BDS connect (DwEqosDxe, K3PcieHostBridgeLib, UsbHcdInitDxe); see the
+  # mBringup[] table in the driver.
+  Silicon/Spacemit/K3/Drivers/AcpiClockInitDxe/K3AcpiClockInitDxe.inf
+  Silicon/Spacemit/K3/Drivers/AcpiPowerInitDxe/K3AcpiPowerInitDxe.inf
+  # Boot-time BRS conformance self-test (loud, non-fatal)
+  Silicon/Spacemit/K3/Drivers/BrsCheckDxe/K3BrsCheckDxe.inf
+!elseif $(K3_OS_DTB_ENABLE) == FALSE
   Silicon/RISC-V/ProcessorPkg/Universal/FdtDxe/FdtDxe.inf {
     <LibraryClasses>
       RiscVCpuLib|Silicon/RISC-V/ProcessorPkg/Library/RiscVCpuLib/RiscVCpuLib.inf
@@ -875,6 +940,13 @@
 
   # Device tree for K3
   Platform/Spacemit/K3/DeviceTree/K3DeviceTree.inf
+!if $(K3_OS_DTB_ENABLE) == TRUE
+  Platform/Spacemit/K3/DeviceTree/Os/K3OsDeviceTree.inf
+  Silicon/Spacemit/K3/Drivers/K3OsFdtDxe/K3OsFdtDxe.inf {
+    <LibraryClasses>
+      FdtLib|EmbeddedPkg/Library/FdtLib/FdtLib.inf
+  }
+!endif
 
   # FDT fixup protocol
   Silicon/Spacemit/Drivers/FdtFixupDxe/FdtFixupDxe.inf {

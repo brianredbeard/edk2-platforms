@@ -20,6 +20,7 @@
 #
 ################################################################################
 [LibraryClasses.common]
+  PlatformOsDescriptionLib|Silicon/Spacemit/Library/PlatformOsDescriptionLibNull/PlatformOsDescriptionLibNull.inf
 !if $(DEBUG_ON_SERIAL_PORT) == TRUE
   DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
 !else
@@ -251,7 +252,9 @@
   #                              // significantly impact boot performance
   #  DEBUG_ERROR     0x80000000  // Error
 !if $(DEBUG_ON_SERIAL_PORT) == TRUE
-  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80000047
+  # Errors only: INFO/LOAD/WARN/INIT debug prints flood the serial console and
+  # slow the GRUB menu countdown (see MUSE-Pico.dsc status-code mask note).
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80000000
 !endif
 
   #
@@ -317,7 +320,7 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdEmuVariableNvModeEnable|FALSE
 !endif
 
-  gEfiMdeModulePkgTokenSpaceGuid.PcdSmbiosVersion|0x0306
+  gEfiMdeModulePkgTokenSpaceGuid.PcdSmbiosVersion|0x0307
   gEfiMdeModulePkgTokenSpaceGuid.PcdSmbiosDocRev|0x0
   gEfiMdeModulePkgTokenSpaceGuid.PcdSmbiosEntryPointProvideMethod|0x2
 

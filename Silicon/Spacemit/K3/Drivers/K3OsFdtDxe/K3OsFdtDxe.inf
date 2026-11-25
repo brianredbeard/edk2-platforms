@@ -1,0 +1,36 @@
+## SPDX-License-Identifier: BSD-2-Clause-Patent
+[Defines]
+  INF_VERSION = 0x0001001A
+  BASE_NAME = K3OsFdtDxe
+  FILE_GUID = 7c34ed4b-c9f5-4d8b-a66a-226877b675ba
+  MODULE_TYPE = DXE_DRIVER
+  VERSION_STRING = 1.0
+  ENTRY_POINT = K3OsFdtEntryPoint
+[Sources]
+  K3OsFdtDxe.c
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  UefiCpuPkg/UefiCpuPkg.dec
+  Silicon/Spacemit/SpacemitPkg.dec
+[LibraryClasses]
+  DebugLib
+  DxeServicesLib
+  FdtLib
+  HobLib
+  PcdLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+  K3OsFdtLib
+[Guids]
+  gFdtHobGuid
+  gFdtTableGuid
+[Protocols]
+  gEfiFdtFixupProtocolGuid
+  gSpacemitPlatformInfoProtocolGuid
+  gK3OsFdtProtocolGuid
+  gRiscVEfiBootProtocolGuid
+[Depex]
+  TRUE
