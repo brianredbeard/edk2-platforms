@@ -1,0 +1,15 @@
+## @file
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+[Defines]
+  INF_VERSION    = 0x0001001A
+  BASE_NAME      = K3OsDeviceTree
+  FILE_GUID      = a8af019c-222e-4d87-a4ed-d8a62c918376
+  MODULE_TYPE    = USER_DEFINED
+  VERSION_STRING = 1.0
+[Sources]
+  k3-pico-itx.os.dts
+  k3-com260-ifx.os.dts
+[Packages]
+  MdePkg/MdePkg.dec
+[BuildOptions]
+  *_*_*_DTCPP_FLAGS = -I$(MODULE_DIR)/Sources/include
