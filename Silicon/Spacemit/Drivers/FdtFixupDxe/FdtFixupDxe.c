@@ -19,6 +19,7 @@
 
 #include <Protocol/PlatformInfo.h>
 #include "FdtFixupDxe.h"
+#include "FdtMemoryFixup.h"
 
 #define SHIFT1  29
 #define MASK1   0x5555555555555555ULL
@@ -85,38 +86,6 @@ IncreaseEthaddr (
       NewMacAddr[3]++;
     }
   }
-}
-
-STATIC
-INT32
-FdtPackReg (
-  CONST VOID  *Fdt,
-  VOID        *Buf,
-  UINT64      Address,
-  UINT64      Size
-  )
-{
-  INT32  AddressCells = fdt_address_cells (Fdt, 0);
-  INT32  SizeCells    = fdt_size_cells (Fdt, 0);
-  CHAR8  *P           = Buf;
-
-  if (AddressCells == 2) {
-    *(fdt64_t *)P = cpu_to_fdt64 (Address);
-  } else {
-    *(fdt32_t *)P = cpu_to_fdt32 (Address);
-  }
-
-  P += 4 * AddressCells;
-
-  if (SizeCells == 2) {
-    *(fdt64_t *)P = cpu_to_fdt64 (Size);
-  } else {
-    *(fdt32_t *)P = cpu_to_fdt32 (Size);
-  }
-
-  P += 4 * SizeCells;
-
-  return P - (CHAR8 *)Buf;
 }
 
 STATIC
@@ -249,61 +218,6 @@ UpdateMacAddr (
 
 STATIC
 VOID
-UpdateMemoryNode (
-  IN VOID  *Fdt
-  )
-{
-  EFI_PEI_HOB_POINTERS  Hob;
-  INT32                 Offset, Ret, Length;
-  UINT64                MemBase, MemSize;
-  CHAR8                 MemoryInfo[64];
-
-  /* delete memory node before add new memory node. */
-  do {
-    Offset = fdt_subnode_offset (Fdt, 0, "memory");
-    if (Offset >= 0) {
-      fdt_del_node (Fdt, Offset);
-    }
-  } while (Offset >= 0);
-
-  //
-  // Get the system memory bank info from memory hobs
-  //
-  Hob.Raw = GetFirstHob (EFI_HOB_TYPE_RESOURCE_DESCRIPTOR);
-  ASSERT (Hob.Raw != NULL);
-  while ((Hob.Raw != NULL) && (!END_OF_HOB_LIST (Hob))) {
-    if (Hob.ResourceDescriptor->ResourceType == EFI_RESOURCE_SYSTEM_MEMORY) {
-      // add memory node
-      MemBase = Hob.ResourceDescriptor->PhysicalStart;
-      MemSize = Hob.ResourceDescriptor->ResourceLength;
-      DEBUG ((DEBUG_INFO, "Memory node: base=0x%lx, size=0x%lx\n", MemBase, MemSize));
-
-      SetMem (MemoryInfo, sizeof (MemoryInfo), 0);
-      AsciiSPrint (MemoryInfo, sizeof (MemoryInfo), "memory@0x%lx", MemBase);
-      Offset = fdt_add_subnode (Fdt, 0, MemoryInfo);
-      Ret    = fdt_setprop (Fdt, Offset, "device_type", "memory", sizeof ("memory"));
-      if (Ret < 0) {
-        DEBUG ((DEBUG_WARN, "Set device_type fail(%a).\n", fdt_strerror (Ret)));
-        break;
-      }
-
-      SetMem (MemoryInfo, sizeof (MemoryInfo), 0);
-      Length = FdtPackReg (Fdt, MemoryInfo, MemBase, MemSize);
-
-      Ret = fdt_setprop (Fdt, Offset, "reg", MemoryInfo, Length);
-      if (Ret < 0) {
-        DEBUG ((DEBUG_WARN, "Set reg fail(%a).\n", fdt_strerror (Ret)));
-        break;
-      }
-    }
-
-    Hob.Raw = GET_NEXT_HOB (Hob);
-    Hob.Raw = GetNextHob (EFI_HOB_TYPE_RESOURCE_DESCRIPTOR, Hob.Raw);
-  }
-}
-
-STATIC
-VOID
 UpdatePlatformInfo (
   IN VOID  *Fdt
   )
@@ -378,7 +292,10 @@ EFIFdtUpdate (
   UpdateSerialNumber (Fdt);
   UpdatePartNumber (Fdt);
   UpdateMacAddr (Fdt);
-  UpdateMemoryNode (Fdt);
+  // RAM is mandatory; a partial tree must never be reported as fixed.
+  if (EFI_ERROR (FdtUpdateMemoryFromHobs (Fdt))) {
+    return EFI_COMPROMISED_DATA;
+  }
   UpdatePlatformInfo (Fdt);
 
   *DtbSize = (UINTN)fdt_totalsize (Fdt);
