@@ -909,6 +909,23 @@ SpiMasterVirtualNotifyEvent (
   Host = &mSpiMasterInstance->QspiHost;
   Host->XipRead    = 0;
   Host->RxUnitSize = QSPI_RX_FIFO_MAX;
+
+  /*
+   * Refuse all QSPI register access after SetVirtualAddressMap:
+   * the OS's EFI runtime page tables map the runtime code/data
+   * only — NOT the QSPI controller MMIO at 0xd420c000. The
+   * rhct17 field test (2026-11-25) proved the access page-faults
+   * inside the runtime service (kernel panic, badaddr
+   * 0xd420c15c, cause 0xd from epc in the runtime region).
+   * Zeroing RegisterBase makes every subsequent flash
+   * write/erase fail cleanly through the existing NULL guards
+   * (EFI_DEVICE_ERROR -> SetVariable EPERM: variables are
+   * read-cached at runtime, writable only before
+   * ExitBootServices). The accidental form of this (a failed
+   * pointer conversion nulling the base) is what rhct14-16
+   * shipped; this is the deliberate, documented one.
+   */
+  Host->RegisterBase = 0;
   EfiConvertPointer (0x0, (VOID **)&mSpiMasterInstance);
   return;
 }
