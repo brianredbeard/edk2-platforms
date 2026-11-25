@@ -43,6 +43,12 @@ UiCreateEmptyLine (
 
 **/
 VOID
+UiCreatePlatformInfoSection (
+  IN EFI_HII_HANDLE  HiiHandle,
+  IN VOID            *StartOpCodeHandle
+  );
+
+VOID
 UiCreateLanguageMenu (
   IN EFI_HII_HANDLE  HiiHandle,
   IN VOID            *StartOpCodeHandle

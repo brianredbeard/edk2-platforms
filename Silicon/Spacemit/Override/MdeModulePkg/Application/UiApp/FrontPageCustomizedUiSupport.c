@@ -25,6 +25,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/UefiHiiServicesLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Library/PrintLib.h>
+#include <Protocol/Smbios.h>
 #include "Ui.h"
 #include "FrontPage.h"
 #include "FrontPageCustomizedUiSupport.h"
@@ -880,3 +882,130 @@ UiListThirdPartyDrivers (
 
   return EFI_SUCCESS;
 }
+/**
+  Read string number StringNum of an SMBIOS record (strings
+  follow the formatted area; 0 = not set). Returns a CHAR16
+  copy in Dst or "---" when absent.
+**/
+STATIC
+VOID
+SmbGetString (
+  IN  EFI_SMBIOS_TABLE_HEADER  *Record,
+  IN  UINTN                    StringNum,
+  OUT CHAR16                   *Dst,
+  IN  UINTN                    DstLen
+  )
+{
+  CHAR8   *Cur;
+  UINTN   Idx;
+  UINTN   i;
+
+  if ((StringNum == 0) || (DstLen < 4)) {
+    StrCpyS (Dst, DstLen, L"---");
+    return;
+  }
+
+  Cur = (CHAR8 *)Record + Record->Length;
+  for (Idx = 1; Idx < StringNum; Idx++) {
+    if (*Cur == 0) {
+      break;
+    }
+    while (*Cur++ != 0) {
+    }
+  }
+
+  if ((*Cur == 0) || (Idx < StringNum)) {
+    StrCpyS (Dst, DstLen, L"---");
+    return;
+  }
+
+  for (i = 0; Cur[i] && (i < DstLen - 1); i++) {
+    Dst[i] = (CHAR16)Cur[i];
+  }
+
+  Dst[i] = 0;
+}
+
+/**
+  Populate and emit the "System Information" section on the front
+  page, reading the INSTALLED SMBIOS tables via EFI_SMBIOS_PROTOCOL
+  (the same source of truth the OS consumes):
+    Type 0  BIOS version (string 5)
+    Type 1  board product (string 2) + system serial (string 7)
+    Type 4  first CPU: version (string 16) + max speed
+    Type 17 memory: size / speed
+**/
+VOID
+UiCreatePlatformInfoSection (
+  IN EFI_HII_HANDLE  HiiHandle,
+  IN VOID            *StartOpCodeHandle
+  )
+{
+  EFI_STATUS              Status;
+  EFI_SMBIOS_PROTOCOL     *Smbios;
+  EFI_SMBIOS_HANDLE       SmbiosHandle;
+  EFI_SMBIOS_TABLE_HEADER *Record;
+  EFI_SMBIOS_TYPE         Type;
+  CHAR16                  Line[80];
+  CHAR16                  Val[64];
+
+  Status = gBS->LocateProtocol (&gEfiSmbiosProtocolGuid, NULL, (VOID **)&Smbios);
+  if (EFI_ERROR (Status)) {
+    return;
+  }
+
+  SmbiosHandle = SMBIOS_HANDLE_PI_RESERVED;
+  Type = EFI_SMBIOS_TYPE_BIOS_INFORMATION;
+  Status = Smbios->GetNext (Smbios, &SmbiosHandle, &Type, &Record, NULL);
+  if (!EFI_ERROR (Status)) {
+    SmbGetString (Record, ((SMBIOS_TABLE_TYPE0 *)Record)->BiosVersion, Val, ARRAY_SIZE (Val));
+    UnicodeSPrint (Line, sizeof (Line), L"  BIOS Version: %s", Val);
+    HiiSetString (HiiHandle, STRING_TOKEN (STR_PLATFORM_INFO_BIOS), Line, NULL);
+  }
+
+  SmbiosHandle = SMBIOS_HANDLE_PI_RESERVED;
+  Type = EFI_SMBIOS_TYPE_SYSTEM_INFORMATION;
+  Status = Smbios->GetNext (Smbios, &SmbiosHandle, &Type, &Record, NULL);
+  if (!EFI_ERROR (Status)) {
+    SmbGetString (Record, ((SMBIOS_TABLE_TYPE1 *)Record)->ProductName, Val, ARRAY_SIZE (Val));
+    UnicodeSPrint (Line, sizeof (Line), L"  Board: %s", Val);
+    HiiSetString (HiiHandle, STRING_TOKEN (STR_PLATFORM_INFO_BOARD), Line, NULL);
+
+    SmbGetString (Record, ((SMBIOS_TABLE_TYPE1 *)Record)->SerialNumber, Val, ARRAY_SIZE (Val));
+    UnicodeSPrint (Line, sizeof (Line), L"  Serial Number: %s", Val);
+    HiiSetString (HiiHandle, STRING_TOKEN (STR_PLATFORM_INFO_SERIAL), Line, NULL);
+  }
+
+  SmbiosHandle = SMBIOS_HANDLE_PI_RESERVED;
+  Type = EFI_SMBIOS_TYPE_PROCESSOR_INFORMATION;
+  Status = Smbios->GetNext (Smbios, &SmbiosHandle, &Type, &Record, NULL);
+  if (!EFI_ERROR (Status)) {
+    SMBIOS_TABLE_TYPE4  *T4 = (SMBIOS_TABLE_TYPE4 *)Record;
+    SmbGetString (Record, T4->ProcessorVersion, Val, ARRAY_SIZE (Val));
+    UnicodeSPrint (Line, sizeof (Line), L"  CPU: %s @ %u MHz", Val, T4->MaxSpeed);
+    HiiSetString (HiiHandle, STRING_TOKEN (STR_PLATFORM_INFO_CPU), Line, NULL);
+  }
+
+  SmbiosHandle = SMBIOS_HANDLE_PI_RESERVED;
+  Type = EFI_SMBIOS_TYPE_MEMORY_DEVICE;
+  Status = Smbios->GetNext (Smbios, &SmbiosHandle, &Type, &Record, NULL);
+  if (!EFI_ERROR (Status)) {
+    SMBIOS_TABLE_TYPE17  *T17 = (SMBIOS_TABLE_TYPE17 *)Record;
+    UINTN                SizeMb = T17->ExtendedSize & 0x7FFFFFFF;
+
+    UnicodeSPrint (Line, sizeof (Line), L"  Memory: %u GB, %u MT/s",
+                   (UINT32)(SizeMb / 1024), T17->Speed);
+    HiiSetString (HiiHandle, STRING_TOKEN (STR_PLATFORM_INFO_MEM), Line, NULL);
+  }
+
+  //
+  // Emit the section: header + the populated lines.
+  //
+  HiiCreateSubTitleOpCode (StartOpCodeHandle, STRING_TOKEN (STR_PLATFORM_INFO_SECTION), 0, 0, 0);
+  HiiCreateSubTitleOpCode (StartOpCodeHandle, STRING_TOKEN (STR_PLATFORM_INFO_BIOS), 0, 0, 0);
+  HiiCreateSubTitleOpCode (StartOpCodeHandle, STRING_TOKEN (STR_PLATFORM_INFO_BOARD), 0, 0, 0);
+  HiiCreateSubTitleOpCode (StartOpCodeHandle, STRING_TOKEN (STR_PLATFORM_INFO_SERIAL), 0, 0, 0);
+  HiiCreateSubTitleOpCode (StartOpCodeHandle, STRING_TOKEN (STR_PLATFORM_INFO_CPU), 0, 0, 0);
+  HiiCreateSubTitleOpCode (StartOpCodeHandle, STRING_TOKEN (STR_PLATFORM_INFO_MEM), 0, 0, 0);
+}
+

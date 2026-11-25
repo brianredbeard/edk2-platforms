@@ -111,11 +111,22 @@
   gSpacemitTokenSpaceGuid.PcdSmbiosSystemSerialNumber|L"Unknown"
   gSpacemitTokenSpaceGuid.PcdSmbiosSystemSKU|L"MPK3"
   gSpacemitTokenSpaceGuid.PcdSmbiosSystemFamily|L"K3"
+  # Chassis Type: Main Server Chassis (0x11) — matches the vendor's Type3
+  # data-file intent; the PCD overrides the data (PcdSmbiosClassisType .dec
+  # default is 0 = out-of-spec, fwts DMIValueOutOfRange).
+  gSpacemitTokenSpaceGuid.PcdSmbiosClassisType|0x11
+  gSpacemitTokenSpaceGuid.PcdSmbiosClassisHeight|1
   gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardManufacturer|L"SpacemiT"
   gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardProductName|L"k3-pico-itx"
   gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardVersion|L"MPK3"
   gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardSerialNumber|L"Unknown"
+  gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardAssertTag|L"MPK3"
+  gSpacemitTokenSpaceGuid.PcdSmbiosBaseBoardChassisLocation|L"Main"
+  gSpacemitTokenSpaceGuid.PcdSmbiosSystemVersion|L"1.0"
+  gSpacemitTokenSpaceGuid.PcdSmbiosClassisManufacturer|L"SpacemiT"
+  gSpacemitTokenSpaceGuid.PcdSmbiosClassisVersion|L"MPK3"
   gSpacemitTokenSpaceGuid.PcdSmbiosClassisSerialNumber|L"Unknown"
+  gSpacemitTokenSpaceGuid.PcdSmbiosClassisAssertTag|L"MPK3"
 
 [PcdsDynamicExDefault.common.DEFAULT]
 !if $(CAPSULE_ENABLE)
@@ -848,8 +859,10 @@
   }
 !endif
 
-  # UiApp
-  MdeModulePkg/Application/UiApp/UiApp.inf {
+  # UiApp — the Spacemit override copy (PACKAGES_PATH resolves the
+  # SDK copy first; the override needs the explicit path, like
+  # NonDiscoverablePciDeviceDxe below)
+  Silicon/Spacemit/Override/MdeModulePkg/Application/UiApp/UiApp.inf {
     <LibraryClasses>
       NULL|Silicon/Spacemit/Library/PlatformUiLib/PlatformManagerUiLib.inf
       NULL|MdeModulePkg/Library/DeviceManagerUiLib/DeviceManagerUiLib.inf

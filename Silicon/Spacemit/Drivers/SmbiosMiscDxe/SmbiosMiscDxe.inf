@@ -33,6 +33,14 @@
   SmbiosMiscEntryPoint.c
   SmbiosMiscDxeStrings.uni
   Type00/MiscBiosVendorData.c
+  Type04/MiscProcessorInformationData.c
+  Type04/MiscProcessorInformationFunction.c
+  Type07/MiscCacheInformationData.c
+  Type07/MiscCacheInformationFunction.c
+  Type16/MiscMemoryInformationData.c
+  Type16/MiscMemoryInformationFunction.c
+  Type44/MiscProcessorAdditionalInformationData.c
+  Type44/MiscProcessorAdditionalInformationFunction.c
   Type00/MiscBiosVendorFunction.c
   Type01/MiscSystemManufacturerData.c
   Type01/MiscSystemManufacturerFunction.c
