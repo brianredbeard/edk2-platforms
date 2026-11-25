@@ -919,6 +919,8 @@
   # mBringup[] table in the driver.
   Silicon/Spacemit/K3/Drivers/AcpiClockInitDxe/K3AcpiClockInitDxe.inf
   Silicon/Spacemit/K3/Drivers/AcpiPowerInitDxe/K3AcpiPowerInitDxe.inf
+  # Boot-time BRS conformance self-test (loud, non-fatal)
+  Silicon/Spacemit/K3/Drivers/BrsCheckDxe/K3BrsCheckDxe.inf
 !elseif $(K3_OS_DTB_ENABLE) == FALSE
   Silicon/RISC-V/ProcessorPkg/Universal/FdtDxe/FdtDxe.inf {
     <LibraryClasses>
