@@ -1,0 +1,56 @@
+{
+  "vendor_baseline": "0b8b7182d8a20a771b97a487d0e6f4ab89fb3492",
+  "opensbi": "a731c7e36988c3308e1978ecde491f2f6182d490",
+  "sdk": {
+    "kind": "vendor 0.0.9 source archive; not a Git checkout",
+    "source_archive_sha256": "9b14187818a2938578298ca24fd9e0038adbaada839988d1daf2b50f49c1f01a",
+    "warning": "Local SDK configuration includes Fedora GCC warning accommodations; vendor reproducible provisioning still required"
+  },
+  "compiler": "riscv64-linux-gnu-gcc (GCC) 16.2.1 20260819 (Red Hat Cross 16.2.1-1)",
+  "dtc": "1.8.1",
+  "target": "RISCV64 RELEASE GCC5",
+  "hardware_validation": {
+    "replacement_firmware": "not performed",
+    "COM260_IFX": "not performed"
+  },
+  "enabled_artifact_evidence": {
+    "k3-pico-itx": {
+      "size": 46552,
+      "sha256": "46609974206c59b2ebcc37ddfc6740c39f5f65a404c404a86322bc6b564ea55e",
+      "raw_section_matches": true
+    },
+    "k3-com260-ifx": {
+      "size": 44779,
+      "sha256": "f27315d7b159971c0a9e422fe50ee459ab3ae826dd09c5c8a0706ebe13ab4ca6",
+      "raw_section_matches": true
+    },
+    "fit_uefi_matches_fd": true,
+    "MUSE-Pico.itb": {
+      "size": 3248128,
+      "sha256": "6d34b8fcea68c9728f7427d383e9136a9c14f7988b527c6e0f0a68978d71ef81"
+    },
+    "MUSE-PICO.fd": {
+      "size": 3145728,
+      "sha256": "596d57bfb389f09d533e79d710eb9e691e97d05f7669dea4a03bb2ff1acebe61"
+    }
+  },
+  "disabled_artifact_evidence": {
+    "fit_uefi_matches_fd": true,
+    "MUSE-Pico.itb": {
+      "size": 3248128,
+      "sha256": "5c99ba50abb86bf9bf8ff6a7cba3278e466c7af39e43863e82c0740fa355f3a0"
+    },
+    "MUSE-PICO.fd": {
+      "size": 3145728,
+      "sha256": "3b2f587e06f945fcd099c6cfc4d5b195475144000a2f43fb47eb7e3302bf20bf"
+    }
+  },
+  "checks": {
+    "host_tests": 22,
+    "baseline_release": "passed",
+    "enabled_release": "passed",
+    "disabled_release": "passed",
+    "mutually_exclusive_configuration": "rejected at DSC parsing; previously accepted",
+    "review": "two important findings repaired with regressions"
+  }
+}
