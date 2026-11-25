@@ -110,6 +110,13 @@
   # eFuse bank shadow registers
   gSpacemitK3TokenSpaceGuid.PcdSpacemitEfuseBankBase|0x0|UINT64|0x00009001
 
+[PcdsFeatureFlag]
+  # Production gate for the ACPI PCC power interface. FALSE (default) = safe
+  # fallback: K3AcpiNvsDxe clears the NVS PccAvailable flag (AML power methods
+  # degrade to always-on) and uninstalls the draft PCCT. Set TRUE only once the
+  # ESOS PCC endpoint + transport are verified against the target kernel.
+  gSpacemitK3TokenSpaceGuid.PcdK3PccEndpointPresent|FALSE|BOOLEAN|0x0000A001
+
 [PcdsDynamic]
   # Per-board GMAC activation bitmask (bit N = controller index N active).
   gSpacemitK3TokenSpaceGuid.PcdGmacUseMask|0xFF|UINT8|0x30010001
@@ -124,7 +131,16 @@
   # Per-board PCIe port activation bitmask (bit N = port index N enabled).
   # 0x03 = Port A + Port B (deb1 default).
   gSpacemitK3TokenSpaceGuid.PcdPcieHostEnableMask|0x03|UINT8|0x30010004
+  # Port A lane geometry when Port B is disabled: 0 = derive from the
+  # split policy (the historical behavior), 2 = force x2 (Pico-ITX
+  # wiring), 4 = force x4 (FML13V05 wiring). The unconditional x2
+  # pinning was a Pico-ITX-only field fix that mis-trains other SKUs.
   gSpacemitK3TokenSpaceGuid.PcdPcieHostPinState|""|VOID*|0x30010005
+  # Port A lane geometry when Port B is disabled: 0 = derive from the
+  # split policy (the historical behavior), 2 = force x2 (Pico-ITX
+  # wiring), 4 = force x4 (FML13V05 wiring). The unconditional x2
+  # pinning was a Pico-ITX-only field fix that mis-trains other SKUs.
+  gSpacemitK3TokenSpaceGuid.PcdPciePortAGeometryWhenBDisabled|0x00|UINT8|0x30010007
 
   # decide whether enable CTF2301
   gSpacemitK3TokenSpaceGuid.PcdCtf2301Enable|FALSE|BOOLEAN|0x30010006
