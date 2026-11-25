@@ -180,49 +180,26 @@ QspiPollRegStatus (
  * access to RBCT/SFAR register, need retry for these two register
  */
 STATIC
-VOID
-QspiWriteRbct (
+EFI_STATUS
+QspiWriteIpRegister (
   IN _QSPI_HOST  *QspiHost,
-  IN UINT32      Val
+  IN UINT32      Offset,
+  IN UINT32      Value
   )
 {
-  UINT32  Temp;
+  UINTN  Retry;
 
-  do {
-    QspiRegwrite32 (QspiHost, QSPI_RBCT, Val);
-    Temp = QspiRegRead32 (QspiHost, QSPI_FR);
-    if (!(Temp & QSPI_FR_IPIEF)) {
-      break;
+  for (Retry = 0; Retry < 100000; Retry++) {
+    QspiRegwrite32 (QspiHost, Offset, Value);
+    if ((QspiRegRead32 (QspiHost, QSPI_FR) & QSPI_FR_IPIEF) == 0) {
+      return EFI_SUCCESS;
     }
 
-    Temp &= QSPI_FR_IPIEF;
-    QspiRegwrite32 (QspiHost, QSPI_FR, Temp);
-
+    QspiRegwrite32 (QspiHost, QSPI_FR, QSPI_FR_IPIEF);
     MicroSecondDelay (1);
-  } while (1);
-}
+  }
 
-STATIC
-VOID
-QspiWriteSfar (
-  IN _QSPI_HOST  *QspiHost,
-  IN UINT32      Val
-  )
-{
-  UINT32  Temp;
-
-  do {
-    QspiRegwrite32 (QspiHost, QSPI_SFAR, Val);
-    Temp = QspiRegRead32 (QspiHost, QSPI_FR);
-    if (!(Temp & QSPI_FR_IPIEF)) {
-      break;
-    }
-
-    Temp &= QSPI_FR_IPIEF;
-    QspiRegwrite32 (QspiHost, QSPI_FR, Temp);
-
-    MicroSecondDelay (1);
-  } while (1);
+  return EFI_TIMEOUT;
 }
 
 STATIC
@@ -282,20 +259,28 @@ QspiUnlockLut (
  * of controller after setting MCR0[SWRESET] bit.
  */
 STATIC
-VOID
+EFI_STATUS
 QspiReset (
   IN _QSPI_HOST  *QspiHost
   )
 {
   UINT32  Reg, Mask;
 
-  do {
+  UINTN  Retry;
+
+  for (Retry = 0; Retry < 100000; Retry++) {
     if (!(QspiRegRead32 (QspiHost, QSPI_SR) & QSPI_SR_BUSY) &&
         !(QspiRegRead32 (QspiHost, QSPI_FR) & QSPI_FR_XIP_ON))
     {
       break;
     }
-  } while (1);
+
+    MicroSecondDelay (1);
+  }
+
+  if (Retry == 100000) {
+    return EFI_TIMEOUT;
+  }
 
   /* qspi softreset first */
   Mask = QSPI_MCR_SWRSTHD | QSPI_MCR_SWRSTSD;
@@ -316,6 +301,7 @@ QspiReset (
 
   Reg &= ~Mask;
   QspiRegwrite32 (QspiHost, QSPI_MCR, Reg);
+  return EFI_SUCCESS;
 }
 
 STATIC
@@ -602,12 +588,13 @@ QspiStartTransfer (
 }
 
 STATIC
-VOID
+EFI_STATUS
 SpiHostControllerInit (
   IN _QSPI_HOST  *QspiHost
   )
 {
-  UINT32  Reg;
+  EFI_STATUS  Status;
+  UINT32      Reg;
 
   QspiHost->RegisterBase = ST_QSPI_REG_BASE;
   QspiHost->MaxFreq      = ST_QSPI_MAX_FREQ;
@@ -635,7 +622,10 @@ SpiHostControllerInit (
   QspiHostSetClock (QspiHost, (UINT64)QspiHost->MaxFreq);
 
   /* qspi softreset first */
-  QspiReset (QspiHost);
+  Status = QspiReset (QspiHost);
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
 
   /* clock settings */
   QspiSwtichMode (QspiHost, QSPI_DISABLE_MODE);
@@ -644,7 +634,10 @@ SpiHostControllerInit (
   QspiRegwrite32 (QspiHost, QSPI_SOCCR, 0x8);
   /* Give the default source address */
   // QspiRegwrite32(QspiHost, QSPI_SFAR, QspiHost->CsAddr[QSPI_CS_A1]);
-  QspiWriteSfar (QspiHost, QspiHost->CsAddr[QSPI_CS_A1]);
+  Status = QspiWriteIpRegister (QspiHost, QSPI_SFAR, QspiHost->CsAddr[QSPI_CS_A1]);
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
   QspiRegwrite32 (QspiHost, QSPI_SFACR, 0x0);
 
   /* config XIP read */
@@ -669,7 +662,10 @@ SpiHostControllerInit (
 
   /* Read using the IP Bus registers QSPI_RBDR0 to QSPI_RBDR31*/
   // _writel(0x1 << 8, QSPI_RBCT);
-  QspiWriteRbct (QspiHost, QSPI_RBCT_RXBRD_MASK);
+  Status = QspiWriteIpRegister (QspiHost, QSPI_RBCT, QSPI_RBCT_RXBRD_MASK);
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
 
   /* clear all interrupt status */
   QspiRegwrite32 (QspiHost, QSPI_FR, 0xffffffff);
@@ -680,6 +676,7 @@ SpiHostControllerInit (
           QspiHost->RxUnitSize, QspiHost->TxUnitSize, QspiHost->XipBufMax)
          );
   DEBUG ((DEBUG_INFO, "XIP read %a\n", QspiHost->XipRead ? "enabled" : "disabled"));
+  return EFI_SUCCESS;
 }
 
 STATIC
@@ -715,12 +712,16 @@ SpiTransfer (
   IN SPI_XFER_OP          *Op
   )
 {
-  EFI_STATUS  Status;
+  EFI_STATUS  Status, CleanupStatus;
   UINT32      Address, Mask, Val, Opcode;
-  UINT32      IsrCfg, SFA1AD, SFA2AD, SFB1AD, SFB2AD;
+  UINT32      IsrCfg, Rbct, SFA1AD, SFA2AD, SFB1AD, SFB2AD;
 
   SPI_MASTER_INSTANCE  *SpiMasterInstance = SPI_MASTER_INSTANCE_FROM_THIS (This);
   _QSPI_HOST           *QspiHost          = &SpiMasterInstance->QspiHost;
+
+  if (QspiHost->RegisterBase == 0) {
+    return EFI_DEVICE_ERROR;
+  }
 
   Opcode = Op->Cmd.Opcode;
 
@@ -738,6 +739,7 @@ SpiTransfer (
     IsrCfg = QspiRegRead32 (QspiHost, QSPI_RSER);
     QspiRegwrite32 (QspiHost, QSPI_RSER, 0);
 
+    Rbct   = QspiRegRead32 (QspiHost, QSPI_RBCT);
     SFA1AD = QspiRegRead32 (QspiHost, QSPI_SFA1AD);
     SFA2AD = QspiRegRead32 (QspiHost, QSPI_SFA2AD);
     SFB1AD = QspiRegRead32 (QspiHost, QSPI_SFB1AD);
@@ -771,7 +773,19 @@ SpiTransfer (
   }
 
   Address += QspiHost->CsAddr[Slave->Cs + QSPI_CS_A1];
-  QspiWriteSfar (QspiHost, Address);
+  Status = QspiWriteIpRegister (QspiHost, QSPI_SFAR, Address);
+  if (EFI_ERROR (Status)) {
+    goto Restore;
+  }
+
+  if (EfiAtRuntime () && (Op->Data.Dir == SPI_XFER_RX_DATA) &&
+      ((Rbct & QSPI_RBCT_RXBRD_MASK) == 0))
+  {
+    Status = QspiWriteIpRegister (QspiHost, QSPI_RBCT, Rbct | QSPI_RBCT_RXBRD_MASK);
+    if (EFI_ERROR (Status)) {
+      goto Restore;
+    }
+  }
 
   /* clear QSPI_FR before trigger LUT command */
   Val = QspiRegRead32 (QspiHost, QSPI_FR);
@@ -806,10 +820,22 @@ SpiTransfer (
   }
 
   /* invalidate the data in the AHB buffer. */
-  QspiReset (QspiHost);
+  CleanupStatus = QspiReset (QspiHost);
+  if (!EFI_ERROR (Status)) {
+    Status = CleanupStatus;
+  }
+
+Restore:
 
   // restore QSPI controller configuration to kernel state
   if (EfiAtRuntime ()) {
+    if ((Op->Data.Dir == SPI_XFER_RX_DATA) && ((Rbct & QSPI_RBCT_RXBRD_MASK) == 0)) {
+      CleanupStatus = QspiWriteIpRegister (QspiHost, QSPI_RBCT, Rbct);
+      if (!EFI_ERROR (Status)) {
+        Status = CleanupStatus;
+      }
+    }
+
     QspiRegwrite32 (QspiHost, QSPI_SFA1AD, SFA1AD);
     QspiRegwrite32 (QspiHost, QSPI_SFA2AD, SFA2AD);
     QspiRegwrite32 (QspiHost, QSPI_SFB1AD, SFB1AD);
@@ -859,6 +885,8 @@ SpiMasterVirtualNotifyEvent (
   IN VOID       *Context
   )
 {
+  _QSPI_HOST  *Host;
+
   /*
    * The K3 runtime variable-write path (SetVariable -> FvbWrite ->
    * SpiNorFlashDxe -> SpiTransfer here) failed EPERM after
@@ -870,9 +898,17 @@ SpiMasterVirtualNotifyEvent (
    * runtime (the same class as the fvb-VA bisect finding: on
    * this near-identity-map platform, MMIO scalars must keep
    * their physical values; see acpi-demo-k3 docs/
-   * fvb-va-bisect-2026-11-22.md). Convert only the instance
-   * pointer (a real runtime allocation).
+   * fvb-va-bisect-2026-11-22.md).
+   *
+   * Runtime mode still requires the IP-command switch: XIP
+   * memory-mapped reads use the flash's bus mapping which is
+   * not valid after SetVirtualAddressMap; route through the
+   * IP command + RX FIFO instead (the runtime-flash patch's
+   * configuration, preserved).
    */
+  Host = &mSpiMasterInstance->QspiHost;
+  Host->XipRead    = 0;
+  Host->RxUnitSize = QSPI_RX_FIFO_MAX;
   EfiConvertPointer (0x0, (VOID **)&mSpiMasterInstance);
   return;
 }
@@ -930,7 +966,10 @@ SpacemitQspiEntryPoint (
   }
 
   if (!EFI_ERROR (Status)) {
-    SpiHostControllerInit (&mSpiMasterInstance->QspiHost);
+    Status = SpiHostControllerInit (&mSpiMasterInstance->QspiHost);
+  }
+
+  if (!EFI_ERROR (Status)) {
 
     // Install protocols
     Status = gBS->InstallMultipleProtocolInterfaces (

@@ -389,7 +389,14 @@ FvbGetPhysicalAddress (
 
   Instance = INSTANCE_FROM_FVB_THIS (This);
 
-  *Address = Instance->RegionBaseAddress;
+  if (EfiGoneVirtual ()) {
+    *Address = (EFI_PHYSICAL_ADDRESS)(UINTN)Instance->VirtualRegionBase;
+    if (Instance->VirtualRegionBase == NULL) {
+      return EFI_DEVICE_ERROR;
+    }
+  } else {
+    *Address = Instance->RegionBaseAddress;
+  }
   return EFI_SUCCESS;
 }
 
@@ -554,6 +561,10 @@ FvbRead (
                                     );
   ReadAddress = StartAddress - Instance->DeviceBaseAddress + Offset;
 
+  if (mFlash == NULL) {
+    return EFI_DEVICE_ERROR;
+  }
+
   Status = mFlash->Read (mFlash, (UINT32)ReadAddress, *NumBytes, Buffer);
   if (EFI_SUCCESS != Status) {
     // Return one of the pre-approved error statuses
@@ -678,6 +689,10 @@ FvbWrite (
 
   BlockAddress = GET_BLOCK_ADDRESS (Instance->RegionBaseAddress, Lba, BlockSize);
   WriteAddress = BlockAddress - Instance->DeviceBaseAddress + Offset;
+
+  if (mFlash == NULL) {
+    return EFI_DEVICE_ERROR;
+  }
 
   Status = mFlash->Write (mFlash, (UINT32)WriteAddress, *NumBytes, (UINT8 *)Buffer);
   if (EFI_SUCCESS != Status) {
@@ -990,6 +1005,10 @@ FlashEraseSingleBlock (
   Status       = EFI_SUCCESS;
   EraseAddress = BlockAddress - Instance->DeviceBaseAddress;
 
+  if (mFlash == NULL) {
+    return EFI_DEVICE_ERROR;
+  }
+
   Status = mFlash->Erase (mFlash, (UINT32)EraseAddress, Instance->Media.BlockSize);
   if (EFI_SUCCESS != Status) {
     DEBUG ((DEBUG_ERROR, "%s - %d Status=%r\n", __FILE__, __LINE__, Status));
@@ -1073,6 +1092,10 @@ FlashWriteBlocks (
 
   WriteAddress = BlockAddress - Instance->DeviceBaseAddress;
 
+  if (mFlash == NULL) {
+    return EFI_DEVICE_ERROR;
+  }
+
   Status = mFlash->Write (mFlash, (UINT32)WriteAddress, BufferSizeInBytes, (UINT8 *)Buffer);
   if (EFI_SUCCESS != Status) {
     DEBUG ((DEBUG_ERROR, "%s - %d Status=%r\n", __FILE__, __LINE__, Status));
@@ -1126,6 +1149,10 @@ FlashReadBlocks (
 
   ReadAddress = StartAddress - Instance->DeviceBaseAddress;
 
+  if (mFlash == NULL) {
+    return EFI_DEVICE_ERROR;
+  }
+
   Status = mFlash->Read (mFlash, (UINT32)ReadAddress, BufferSizeInBytes, Buffer);
   if (EFI_SUCCESS != Status) {
     DEBUG ((DEBUG_ERROR, "%s - %d Status=%r\n", __FILE__, __LINE__, Status));
@@ -1142,28 +1169,30 @@ FlashFvbVirtualNotifyEvent (
   IN VOID       *Context
   )
 {
-  /*
-   * The K3 platform passes an (near-)identity virtual map at
-   * SetVirtualAddressMap: runtime access to the flash device
-   * continues to work on the addresses captured at init.
-   * Converting ANY pointer here (instance table, mFlash, or its
-   * members) produces addresses that fault on the first runtime
-   * variable access — observed as a hard hang at the
-   * GRUB→kernel handoff (rhct10 bisect, 2026-11-22; docs/
-   * fvb-va-bisect-2026-11-22.md in acpi-demo-k3).
-   *
-   * The vendor code converted MMIO scalars (benign under an
-   * identity map — the "garbage" lands on the same physical
-   * addresses); the rework that stopped doing that AND added
-   * protocol-pointer conversions broke runtime FVB outright.
-   *
-   * Correct behavior on an identity-map platform: convert
-   * nothing. This callback stays a no-op; the scalar fields
-   * keep their init-time physical values, which remain valid.
-   * A non-identity map would need a real conversion pass —
-   * gated here once one exists and is runtime-qualified.
-   */
-  return;
+  UINTN              Index;
+  FV_FLASH_INSTANCE  *Instance;
+
+  // VariableRuntimeDxe compares the FV base with its converted store pointer.
+  // Keep the original physical bases for the SPI device-relative offsets.
+  for (Index = 0; Index < ARRAY_SIZE (mFlashDevices); Index++) {
+    Instance = mFlashInstances[Index];
+    if (Instance != NULL) {
+      Instance->VirtualRegionBase = (VOID *)Instance->RegionBaseAddress;
+      if (EFI_ERROR (EfiConvertPointer (0, &Instance->VirtualRegionBase))) {
+        Instance->VirtualRegionBase = NULL;
+      }
+    }
+  }
+
+  // The callback still runs in the physical mapping. Relocate the callable
+  // slots through the original interface before converting our reference.
+  if (EFI_ERROR (EfiConvertPointer (0, (VOID **)&mFlash->Read)) ||
+      EFI_ERROR (EfiConvertPointer (0, (VOID **)&mFlash->Write)) ||
+      EFI_ERROR (EfiConvertPointer (0, (VOID **)&mFlash->Erase)) ||
+      EFI_ERROR (EfiConvertPointer (0, (VOID **)&mFlash)))
+  {
+    mFlash = NULL;
+  }
 }
 
 EFI_STATUS
@@ -1188,7 +1217,7 @@ FlashFvbInitialize (
   //
   // Create FVB flash device
   //
-  mFlashInstances = AllocateRuntimePool ((UINT32)(sizeof (FV_FLASH_INSTANCE *) * FlashDeviceCount));
+  mFlashInstances = AllocateRuntimeZeroPool ((UINT32)(sizeof (FV_FLASH_INSTANCE *) * FlashDeviceCount));
   if (mFlashInstances == NULL) {
     DEBUG ((DEBUG_ERROR, "%a: Cannot allocate memory\n", __FUNCTION__));
     return EFI_OUT_OF_RESOURCES;
